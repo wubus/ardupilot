@@ -154,14 +154,14 @@ void AP_MotorsCoax::output_armed_stabilizing()
     if (is_zero(rp_thrust_max)) {
         rp_scale = 1.0f;
     } else {
-        rp_scale = constrain_float((1.0f - MIN(fabsf(yaw_thrust), 0.5f * (float)_yaw_headroom * 0.001f)) / rp_thrust_max, 0.0f, 1.0f);
+        rp_scale = 1.0f; // constrain_float((1.0f - MIN(fabsf(yaw_thrust), 0.5f * (float)_yaw_headroom * 0.001f)) / rp_thrust_max, 0.0f, 1.0f);
         if (rp_scale < 1.0f) {
             limit.roll = true;
             limit.pitch = true;
         }
     }
 
-    actuator_allowed = 2.0f * (1.0f - rp_scale * rp_thrust_max);
+    actuator_allowed = 10.0f; //2.0f * (1.0f - rp_scale * rp_thrust_max); //first change: set this to be always at the maximum
     if (fabsf(yaw_thrust) > actuator_allowed) {
         yaw_thrust = constrain_float(yaw_thrust, -actuator_allowed, actuator_allowed);
         limit.yaw = true;
@@ -170,11 +170,12 @@ void AP_MotorsCoax::output_armed_stabilizing()
     // calculate the minimum thrust that doesn't limit the roll, pitch and yaw forces
     thrust_min_rpy = MAX(fabsf(rp_scale * rp_thrust_max), fabsf(yaw_thrust));
 
-    thr_adj = throttle_thrust - throttle_avg_max;
+    // comment this part out, maybe?
+    thr_adj = 0.0f; //throttle_thrust - throttle_avg_max;
     if (thr_adj < (thrust_min_rpy - throttle_avg_max)) {
         // Throttle can't be reduced to the desired level because this would reduce airflow over
         // the control surfaces preventing roll and pitch reaching the desired level.
-        thr_adj = MIN(thrust_min_rpy, throttle_avg_max) - throttle_avg_max;
+        thr_adj = 0.0f; //MIN(thrust_min_rpy, throttle_avg_max) - throttle_avg_max;
     }
 
     // calculate the throttle setting for the lift fan
@@ -182,27 +183,27 @@ void AP_MotorsCoax::output_armed_stabilizing()
     // compensation_gain can never be zero
     _throttle_out = thrust_out / compensation_gain;
 
+/*
     if (fabsf(yaw_thrust) > thrust_out) {
         yaw_thrust = constrain_float(yaw_thrust, -thrust_out, thrust_out);
         limit.yaw = true;
     }
-
+*/
     _thrust_yt_ccw = thrust_out + 0.5f * yaw_thrust;
     _thrust_yt_cw = thrust_out - 0.5f * yaw_thrust;
 
     // limit thrust out for calculation of actuator gains
-    float thrust_out_actuator = constrain_float(MAX(_throttle_hover * 0.5f, thrust_out), 0.5f, 1.0f);
-
+    //float thrust_out_actuator = constrain_float(MAX(_throttle_hover * 0.5f, thrust_out), 0.5f, 1.0f);
     if (is_zero(thrust_out)) {
         limit.roll = true;
         limit.pitch = true;
     }
-    // force of a lifting surface is approximately equal to the angle of attack times the airflow velocity squared
+    // control moment is approximately equal to the angle of overall thrust vector times the thrust
     // static thrust is proportional to the airflow velocity squared
     // therefore the torque of the roll and pitch actuators should be approximately proportional to
-    // the angle of attack multiplied by the static thrust.
-    _actuator_out[0] = roll_thrust / thrust_out_actuator;
-    _actuator_out[1] = pitch_thrust / thrust_out_actuator;
+    // the angle multiplied by the static thrust.
+    _actuator_out[0] = roll_thrust; // thrust_out_actuator;  // so this is changing the amount of servo actuation based on the amount of throttle. Do I want that?
+    _actuator_out[1] = pitch_thrust; // thrust_out_actuator;
     if (fabsf(_actuator_out[0]) > 1.0f) {
         limit.roll = true;
         _actuator_out[0] = constrain_float(_actuator_out[0], -1.0f, 1.0f);
@@ -215,7 +216,7 @@ void AP_MotorsCoax::output_armed_stabilizing()
     _actuator_out[3] = -_actuator_out[1];
 }
 
-// output_test_seq - spin a motor at the pwm value specified
+//  output_test_seq - spin a motor at the pwm value specified
 //  motor_seq is the motor's sequence number from 1 to the number of motors on the frame
 //  pwm value is an actual pwm value that will be output, normally in the range of 1000 ~ 2000
 void AP_MotorsCoax::_output_test_seq(uint8_t motor_seq, int16_t pwm)

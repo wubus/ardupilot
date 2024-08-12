@@ -126,7 +126,7 @@ void Plane::stabilize_roll()
 
 float Plane::stabilize_roll_get_roll_out()
 {
-    const float speed_scaler = get_speed_scaler();
+    const float speed_scaler = 1.0f; //get_speed_scaler();
 #if HAL_QUADPLANE_ENABLED
     if (!quadplane.use_fw_attitude_controllers()) {
         // use the VTOL rate for control, to ensure consistency

@@ -234,7 +234,7 @@ const AP_Param::GroupInfo AP_MotorsMulticopter::var_info[] = {
     AP_GROUPEND
 };
 
-// Constructor
+// Constructor 
 AP_MotorsMulticopter::AP_MotorsMulticopter(uint16_t speed_hz) :
                 AP_Motors(speed_hz),
                 _throttle_limit(1.0f)

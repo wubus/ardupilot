@@ -41,7 +41,7 @@
 #include <SRV_Channel/SRV_Channel.h>
 #include <AP_RangeFinder/AP_RangeFinder.h>     // Range finder library
 #include <Filter/Filter.h>                     // Filter library
-#include <AP_Camera/AP_Camera.h>          // Photo or video camera
+#include <AP_Camera/AP_Camera.h>          // Photo or video camera 
 #include <AP_Terrain/AP_Terrain.h>
 #include <AP_RPM/AP_RPM.h>
 #include <AP_Beacon/AP_Beacon.h>

@@ -26,7 +26,7 @@
 // 6 here is AP_Motors::MOTOR_FRAME_HELI
 #define DEFAULT_FRAME_CLASS 6
 #else
-#define DEFAULT_FRAME_CLASS 0
+#define DEFAULT_FRAME_CLASS 9
 #endif
 
 const AP_Param::Info Copter::var_info[] = {

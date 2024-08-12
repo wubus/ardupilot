@@ -12,7 +12,7 @@ const AP_Param::GroupInfo QuadPlane::var_info[] = {
     // @Values: 0:Disable,1:Enable,2:Enable VTOL AUTO
     // @User: Standard
     // @RebootRequired: True
-    AP_GROUPINFO_FLAGS("ENABLE", 1, QuadPlane, enable, 0, AP_PARAM_FLAG_ENABLE),
+    AP_GROUPINFO_FLAGS("ENABLE", 1, QuadPlane, enable, 1, AP_PARAM_FLAG_ENABLE),
 
     // @Group: M_
     // @Path: ../libraries/AP_Motors/AP_MotorsMulticopter.cpp
@@ -27,7 +27,7 @@ const AP_Param::GroupInfo QuadPlane::var_info[] = {
     // @Increment: 10
     // @Range: 1000 8000
     // @User: Advanced
-    AP_GROUPINFO("ANGLE_MAX", 10, QuadPlane, aparm.angle_max, 3000),
+    AP_GROUPINFO("ANGLE_MAX", 10, QuadPlane, aparm.angle_max, 8000),
 
     // @Param: TRANSITION_MS
     // @DisplayName: Transition time
@@ -147,16 +147,16 @@ const AP_Param::GroupInfo QuadPlane::var_info[] = {
     // @Range: 0 30
     // @Units: deg
     // @Increment: 1
-    AP_GROUPINFO("TRAN_PIT_MAX", 29, QuadPlane, transition_pitch_max, 3),
+    AP_GROUPINFO("TRAN_PIT_MAX", 29, QuadPlane, transition_pitch_max, 20),
 
     // frame class was moved from 30 when consolidating AP_Motors classes
 #define FRAME_CLASS_OLD_IDX 30
     // @Param: FRAME_CLASS
     // @DisplayName: Frame Class
     // @Description: Controls major frame class for multicopter component
-    // @Values: 0:Undefined, 1:Quad, 2:Hexa, 3:Octa, 4:OctaQuad, 5:Y6, 7:Tri, 10: Single/Dual, 12:DodecaHexa, 14:Deca, 15:Scripting Matrix, 17:Dynamic Scripting Matrix
+    // @Values: 0:Undefined, 1:Quad, 2:Hexa, 3:Octa, 4:OctaQuad, 5:Y6, 7:Tri, 9: CoaxCopter, 10: Single/Dual, 12:DodecaHexa, 14:Deca, 15:Scripting Matrix, 17:Dynamic Scripting Matrix
     // @User: Standard
-    AP_GROUPINFO("FRAME_CLASS", 46, QuadPlane, frame_class, 1),
+    AP_GROUPINFO("FRAME_CLASS", 46, QuadPlane, frame_class, 9),
 
     // @Param: FRAME_TYPE
     // @DisplayName: Frame Type (+, X or V)
@@ -653,14 +653,14 @@ QuadPlane::QuadPlane(AP_AHRS &_ahrs) :
 }
 
 
-// setup default motors for the frame class
+// setup default motors for the frame class 
 void QuadPlane::setup_default_channels(uint8_t num_motors)
 {
     for (uint8_t i=0; i<num_motors; i++) {
         SRV_Channels::set_aux_channel_default(SRV_Channels::get_motor_function(i), CH_5+i);
     }
 }
-    
+
 
 bool QuadPlane::setup(void)
 {
@@ -726,10 +726,17 @@ bool QuadPlane::setup(void)
     case AP_Motors::MOTOR_FRAME_TRI:
         SRV_Channels::set_default_function(CH_5, SRV_Channel::k_motor1);
         SRV_Channels::set_default_function(CH_6, SRV_Channel::k_motor2);
-        SRV_Channels::set_default_function(CH_8, SRV_Channel::k_motor4);
-        SRV_Channels::set_default_function(CH_11, SRV_Channel::k_motor7);
+        SRV_Channels::set_default_function(CH_8, SRV_Channel::k_motor4);  //for tailsitter frame type this is done inside motors->init()
+        SRV_Channels::set_default_function(CH_11, SRV_Channel::k_motor7);  // this is for tilt servo I think -> replaces motor 4 or added on? 
         AP_Param::set_frame_type_flags(AP_PARAM_FRAME_TRICOPTER);
         break;
+    case AP_Motors::MOTOR_FRAME_COAX:
+        SRV_Channels::set_default_function(CH_5, SRV_Channel::k_motor1);
+        SRV_Channels::set_default_function(CH_6, SRV_Channel::k_motor2);
+        SRV_Channels::set_default_function(CH_7, SRV_Channel::k_motor5);  // CoaxCopter requires that 6 actuators have been assigned
+        SRV_Channels::set_default_function(CH_8, SRV_Channel::k_motor6);  //
+        SRV_Channels::set_default_function(CH_9, SRV_Channel::k_motor3);   // 9/5 and 10/6 won't actually get any use but they are assigned anyway
+        SRV_Channels::set_default_function(CH_10, SRV_Channel::k_motor4);  // 9/5 and 10/6 won't actually get any use but they are assigned anyway
     case AP_Motors::MOTOR_FRAME_TAILSITTER:
     case AP_Motors::MOTOR_FRAME_SCRIPTING_MATRIX:
     case AP_Motors::MOTOR_FRAME_DYNAMIC_SCRIPTING_MATRIX:
@@ -753,6 +760,10 @@ bool QuadPlane::setup(void)
         tailsitter.tailsitter_motors = new AP_MotorsTailsitter(rc_speed);
         motors = tailsitter.tailsitter_motors;
         motors_var_info = AP_MotorsTailsitter::var_info;
+        break;
+    case AP_Motors::MOTOR_FRAME_COAX:
+        motors = new AP_MotorsCoax(rc_speed);
+        motors_var_info = AP_MotorsCoax::var_info;
         break;
     case AP_Motors::MOTOR_FRAME_DYNAMIC_SCRIPTING_MATRIX:
 #if AP_SCRIPTING_ENABLED
@@ -811,7 +822,6 @@ bool QuadPlane::setup(void)
     motors->update_throttle_range();
     motors->set_update_rate(rc_speed);
     attitude_control->parameter_sanity_check();
-
     // Try to convert mot PWM params, if still invalid force conversion
     AP_Param::convert_old_parameters(&mot_pwm_conversion_table[0], ARRAY_SIZE(mot_pwm_conversion_table));
     if (!motors->check_mot_pwm_params()) {
@@ -911,15 +921,15 @@ void QuadPlane::run_esc_calibration(void)
  */
 void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
 {
-    bool use_multicopter_control = in_vtol_mode() && !tailsitter.in_vtol_transition();
+    bool use_multicopter_control = true; //in_vtol_mode() && !tailsitter.in_vtol_transition();
     bool use_yaw_target = false;
 
     float yaw_target_cd = 0.0;
     if (!use_multicopter_control && transition->update_yaw_target(yaw_target_cd)) {
         use_multicopter_control = true;
-        use_yaw_target = true;
+        use_yaw_target = false;
     }
-
+    use_yaw_target = false;
     // normal control modes for VTOL and FW flight
     // tailsitter in transition to VTOL flight is not really in a VTOL mode yet
     if (use_multicopter_control) {
@@ -935,9 +945,9 @@ void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
             if (!(tailsitter.input_type & Tailsitter::input::TAILSITTER_INPUT_PLANE)) {
                 // In multicopter input mode, the roll and yaw stick axes are independent of pitch
                 attitude_control->input_euler_rate_yaw_euler_angle_pitch_bf_roll(false,
-                                                                                plane.nav_roll_cd,
-                                                                                plane.nav_pitch_cd,
-                                                                                yaw_rate_cds);
+                                                                    plane.nav_roll_cd,
+                                                                    plane.nav_pitch_cd,
+                                                                    yaw_rate_cds);
                 return;
             } else {
                 // In plane input mode, the roll and yaw sticks are swapped
@@ -973,10 +983,15 @@ void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
         }
 
         if (use_yaw_target) {
+            attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(plane.nav_roll_cd,
+                                                                plane.nav_pitch_cd,
+                                                                yaw_rate_cds);
+            /*
             attitude_control->input_euler_angle_roll_pitch_yaw(plane.nav_roll_cd,
                                                                plane.nav_pitch_cd,
                                                                yaw_target_cd,
                                                                true);
+                                                               */
         } else {
             // use euler angle attitude control
             attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(plane.nav_roll_cd,
@@ -1011,7 +1026,8 @@ void QuadPlane::hold_stabilize(float throttle_in)
         relax_attitude_control();
     } else {
         set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
-        bool should_boost = true;
+        //bool should_boost = true;
+        bool should_boost = false;
         if (tailsitter.enabled() && assisted_flight) {
             // tailsitters in forward flight should not use angle boost
             should_boost = false;
@@ -1109,7 +1125,6 @@ float QuadPlane::get_pilot_throttle()
         // get hover throttle level [0,1]
         float thr_mid = motors->get_throttle_hover();
         float thrust_curve_expo = constrain_float(throttle_expo, 0.0f, 1.0f);
-
         // this puts mid stick at hover throttle
         return throttle_curve(thr_mid, thrust_curve_expo, throttle_in);
     } else {
@@ -1145,7 +1160,7 @@ void QuadPlane::get_pilot_desired_lean_angles(float &roll_out_cd, float &pitch_o
     // apply circular limit
     float total_in = norm(pitch_out_cd, roll_out_cd);
     if (total_in > angle_limit_cd) {
-        float ratio = angle_limit_cd / total_in;
+        float ratio = 1.0f; //angle_limit_cd / total_in;
         roll_out_cd *= ratio;
         pitch_out_cd *= ratio;
     }

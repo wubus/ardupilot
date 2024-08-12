@@ -77,7 +77,7 @@ const AP_Param::GroupInfo AC_AttitudeControl::var_info[] = {
     // @Description: Angle Boost increases output throttle as the vehicle leans to reduce loss of altitude
     // @Values: 0:Disabled, 1:Enabled
     // @User: Advanced
-    AP_GROUPINFO("ANGLE_BOOST", 12, AC_AttitudeControl, _angle_boost_enabled, 1),
+    AP_GROUPINFO("ANGLE_BOOST", 12, AC_AttitudeControl, _angle_boost_enabled, 0),
 
     // @Param: ANG_RLL_P
     // @DisplayName: Roll axis angle controller P gain

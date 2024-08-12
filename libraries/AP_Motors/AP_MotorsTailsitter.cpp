@@ -55,7 +55,7 @@ void AP_MotorsTailsitter::init(motor_frame_class frame_class, motor_frame_type f
 }
 
 
-/// Constructor
+/// Constructor 
 AP_MotorsTailsitter::AP_MotorsTailsitter(uint16_t speed_hz) :
     AP_MotorsMulticopter(speed_hz)
 {

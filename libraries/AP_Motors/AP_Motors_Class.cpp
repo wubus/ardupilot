@@ -44,7 +44,7 @@ AP_Motors::AP_Motors(uint16_t speed_hz) :
     _throttle_slew_filter.set_cutoff_frequency(AP_MOTORS_SLEW_FILTER_CUTOFF);
     _throttle_slew_filter.reset(0.0f);
 
-    // setup throttle slew detector
+    // setup throttle slew detector 
     _throttle_slew.reset();
 
     // init limit flags

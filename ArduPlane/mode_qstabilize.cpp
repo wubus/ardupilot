@@ -15,7 +15,7 @@ void ModeQStabilize::update()
     // Beware that QuadPlane::tailsitter_check_input (called from Plane::read_radio)
     // may alter the control_in values for roll and yaw, but not the corresponding
     // radio_in values. This means that the results for norm_input would not necessarily
-    // be correct for tailsitters, so get_control_in() must be used instead.
+    // be correct for tailsitters, so get_control_in() must be used instead. 
     // normalize control_input to [-1,1]
     const float roll_input = (float)plane.channel_roll->get_control_in() / plane.channel_roll->get_range();
     const float pitch_input = (float)plane.channel_pitch->get_control_in() / plane.channel_pitch->get_range();
@@ -46,7 +46,7 @@ void ModeQStabilize::run()
         Mode::run();
         return;
     }
-
+    //an absolutely crazy function. Do I want this? Maybe.
     plane.quadplane.assign_tilt_to_fwd_thr();
 
     // special check for ESC calibration in QSTABILIZE

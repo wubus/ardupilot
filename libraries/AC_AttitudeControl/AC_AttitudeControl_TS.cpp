@@ -87,10 +87,10 @@ void AC_AttitudeControl_TS::input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool 
     if (error_ratio > 1) {
         yaw_rate /= (error_ratio * error_ratio);
     }
-    _euler_angle_target.z = wrap_PI(_euler_angle_target.z + yaw_rate * _dt);
+    _euler_angle_target.z = wrap_PI(_euler_angle_target.z + yaw_rate * _dt);  
 
     // init attitude target to desired euler yaw and pitch with zero roll
-    _attitude_target.from_euler(0, euler_pitch, _euler_angle_target.z);
+    _attitude_target.from_euler(0, euler_pitch, _euler_angle_target.z);   // left stick controls heading angle
 
     // apply body-frame yaw/roll (this is roll/yaw for a tailsitter in forward flight)
     // rotate body_roll axis by |sin(pitch angle)|

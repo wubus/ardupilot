@@ -16,7 +16,7 @@
 class AP_MotorsTri : public AP_MotorsMulticopter {
 public:
 
-    /// Constructor
+    /// Constructor 
     AP_MotorsTri(uint16_t speed_hz = AP_MOTORS_SPEED_DEFAULT) :
         AP_MotorsMulticopter(speed_hz)
     {
@@ -31,7 +31,7 @@ public:
     // set update rate to motors - a value in hertz
     void                set_update_rate( uint16_t speed_hz ) override;
 
-    // output_to_motors - sends minimum values out to the motors
+    // output_to_motors - sends minimum values out to the motors 
     virtual void        output_to_motors() override;
 
     // get_motor_mask - returns a bitmask of which outputs are being used for motors or servos (1 means being used)
