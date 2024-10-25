@@ -411,6 +411,21 @@ void AC_AttitudeControl_Multi::update_throttle_gain_boost()
     }
 }
 
+// void AC_AttitudeControl_Multi::update_pitch_gain_scheduling(int32_t pitch)
+// {
+//     // based on pitch angle, we should alter the gains
+//     // we can independently alter kp and kd
+//     if (pitch < 2000) {
+//         set_PD_scale_mult(Vector3f(1.0f, 1.0f, 1.0f));
+//     }
+//     else if (pitch > 7000) { // I could replace 7000 with a parameter once I figure the parameters out
+//         set_PD_scale_mult(Vector3f(rll_atten_fw, pit_atten_fw, yaw_atten_fw))
+//     }
+//     else {
+//         set_PD_scale_mult(Vector3f(1.0f + (rll_atten_fw - 1.0f)*(pitch - 2000)/5000, 1.0f + (pit_atten_fw - 1.0f)*(pitch - 2000)/5000, 1.0f + (yaw_atten_fw - 1.0f)*(pitch - 2000)/5000))
+//     }
+// }
+
 // update_throttle_rpy_mix - slew set_throttle_rpy_mix to requested value
 void AC_AttitudeControl_Multi::update_throttle_rpy_mix()
 {
@@ -439,7 +454,7 @@ void AC_AttitudeControl_Multi::update_throttle_rpy_mix()
     _throttle_rpy_mix = constrain_float(_throttle_rpy_mix, 0.1f, AC_ATTITUDE_CONTROL_MAX);
 }
 
-void AC_AttitudeControl_Multi::rate_controller_run()
+void AC_AttitudeControl_Multi::rate_controller_run(int32_t target_pitch_angle)
 {
     // boost angle_p/pd each cycle on high throttle slew
     update_throttle_gain_boost();
@@ -451,13 +466,13 @@ void AC_AttitudeControl_Multi::rate_controller_run()
 
     Vector3f gyro_latest = _ahrs.get_gyro_latest();
 
-    _motors.set_roll(get_rate_roll_pid().update_all(_ang_vel_body.x, gyro_latest.x,  _dt, _motors.limit.roll, _pd_scale.x) + _actuator_sysid.x);
+    _motors.set_roll(get_rate_roll_pid().update_all(_ang_vel_body.x, gyro_latest.x,  _dt, _motors.limit.roll, _pd_scale.x, target_pitch_angle) + _actuator_sysid.x);
     _motors.set_roll_ff(get_rate_roll_pid().get_ff());
 
-    _motors.set_pitch(get_rate_pitch_pid().update_all(_ang_vel_body.y, gyro_latest.y,  _dt, _motors.limit.pitch, _pd_scale.y) + _actuator_sysid.y);
+    _motors.set_pitch(get_rate_pitch_pid().update_all(_ang_vel_body.y, gyro_latest.y,  _dt, _motors.limit.pitch, _pd_scale.y, target_pitch_angle) + _actuator_sysid.y);
     _motors.set_pitch_ff(get_rate_pitch_pid().get_ff());
 
-    _motors.set_yaw(get_rate_yaw_pid().update_all(_ang_vel_body.z, gyro_latest.z,  _dt, _motors.limit.yaw, _pd_scale.z) + _actuator_sysid.z);
+    _motors.set_yaw(get_rate_yaw_pid().update_all(_ang_vel_body.z, gyro_latest.z,  _dt, _motors.limit.yaw, _pd_scale.z, target_pitch_angle) + _actuator_sysid.z);
     _motors.set_yaw_ff(get_rate_yaw_pid().get_ff()*_feedforward_scalar);
 
     _sysid_ang_vel_body.zero();

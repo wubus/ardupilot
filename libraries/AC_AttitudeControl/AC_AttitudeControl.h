@@ -197,7 +197,7 @@ public:
     Quaternion attitude_from_thrust_vector(Vector3f thrust_vector, float heading_angle) const;
 
     // Run angular velocity controller and send outputs to the motors
-    virtual void rate_controller_run() = 0;
+    virtual void rate_controller_run(int32_t target_pitch_angle = 0) = 0;
 
     // Convert a 321-intrinsic euler angle derivative to an angular velocity vector
     void euler_rate_to_ang_vel(const Quaternion& att, const Vector3f& euler_rate_rads, Vector3f& ang_vel_rads);

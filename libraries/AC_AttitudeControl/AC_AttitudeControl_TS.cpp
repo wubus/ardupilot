@@ -62,11 +62,11 @@ void AC_AttitudeControl_TS::input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool 
 {
     // Convert from centidegrees on public interface to radians
     float euler_yaw_rate = radians(euler_yaw_rate_cds*0.01f);
-    float euler_pitch    = radians(constrain_float(euler_pitch_cd * 0.01f, -90.0f, 90.0f));
+    float euler_pitch    = radians(constrain_float(euler_pitch_cd * 0.01f, -120.0f, 120.0f));
     float body_roll      = radians(-body_roll_cd * 0.01f);
 
-    const float cpitch = cosf(euler_pitch);
-    const float spitch = fabsf(sinf(euler_pitch));
+    const float cpitch = fabsf(cosf(euler_pitch)); // If we are slightly above or below horizontal, right roll gives a little right yaw as well
+    const float spitch = fabsf(sinf(euler_pitch)); 
 
     // Compute attitude error
     Quaternion attitude_body;
