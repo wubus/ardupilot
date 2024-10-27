@@ -252,8 +252,8 @@ float AC_PID::update_all(float target, float measurement, float dt, bool limit, 
     // update I term
     update_i(dt, limit);
 
-    float P_out = (_error * _kp); //update_p_gain(pitch_angle_target));
-    float D_out = (_derivative * _kd); //update_d_gain(pitch_angle_target));
+    float P_out = (_error * update_p_gain(pitch_angle_target));
+    float D_out = (_derivative * update_d_gain(pitch_angle_target));
 
     // calculate slew limit modifier for P+D
     _pid_info.Dmod = _slew_limiter.modifier((_pid_info.P + _pid_info.D) * _slew_limit_scale, dt);
