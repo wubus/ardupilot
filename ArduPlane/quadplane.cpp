@@ -966,7 +966,7 @@ void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
                     roll_limit = tailsitter.max_roll_angle * 100.0f;
                 }
                 // Prevent a divide by zero
-                const float yaw_rate_max = command_model_pilot.get_rate();
+                const float yaw_rate_max = command_model_pilot.get_rate(plane.nav_pitch_cd);
                 float yaw_rate_limit = ((yaw_rate_max < 1.0f) ? 1 : yaw_rate_max) * 100.0f;
                 float yaw2roll_scale = roll_limit / yaw_rate_limit;
 
@@ -1340,7 +1340,9 @@ float QuadPlane::get_pilot_input_yaw_rate_cds(void) const
     }
 
     // add in rudder input
-    const float yaw_rate_max = command_model_pilot.get_rate();
+    //const float yaw_rate_max = command_model_pilot.get_rate();
+
+    const float yaw_rate_max = command_model_pilot.get_rate(plane.nav_pitch_cd);
     float max_rate = yaw_rate_max;
     if (!in_vtol_mode() && tailsitter.enabled()) {
         // scale by RUDD_DT_GAIN when not in a VTOL mode for
@@ -3839,7 +3841,8 @@ float QuadPlane::get_weathervane_yaw_rate_cds(void)
                                      pos_control->get_pitch_cd(),
                                      is_takeoff,
                                      in_vtol_land_sequence())) {
-        return constrain_float(wv_output * (1/45.0), -100.0, 100.0) * command_model_pilot.get_rate() * 0.5;
+        //return constrain_float(wv_output * (1/45.0), -100.0, 100.0) * command_model_pilot.get_rate() * 0.5;
+        return constrain_float(wv_output * (1/45.0), -100.0, 100.0) * command_model_pilot.get_rate(plane.nav_pitch_cd) * 0.5;
     }
 
     return 0.0;

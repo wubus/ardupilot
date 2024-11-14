@@ -219,7 +219,8 @@ private:
 
     // Command model parameter class
     // Default max rate, default expo, default time constant
-    AC_CommandModel command_model_pilot{100.0, 0.25, 0.25};
+    //AC_CommandModel command_model_pilot{100.0, 0.25, 0.25};
+    AC_CommandModel command_model_pilot{100.0, 0.25, 0.25, 100.0};
     // helper functions to set and disable time constant from command model
     void set_pilot_yaw_rate_time_constant();
     void disable_yaw_rate_time_constant();

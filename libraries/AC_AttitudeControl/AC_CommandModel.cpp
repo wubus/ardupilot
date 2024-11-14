@@ -35,14 +35,17 @@ const AP_Param::GroupInfo AC_CommandModel::var_info[] = {
     // @User: Standard
     AP_GROUPINFO_FLAGS_DEFAULT_POINTER("RATE_TC", 3, AC_CommandModel, rate_tc, default_rate_tc),
 
+    AP_GROUPINFO_FLAGS_DEFAULT_POINTER("RATE_FW", 4, AC_CommandModel, rate_fw, default_rate_fw),
+
     AP_GROUPEND
 };
 
 // Constructor
-AC_CommandModel::AC_CommandModel(float initial_rate, float initial_expo, float initial_tc) :
+AC_CommandModel::AC_CommandModel(float initial_rate, float initial_expo, float initial_tc, float initial_rate_fw) :
     default_rate(initial_rate),
     default_expo(initial_expo),
-    default_rate_tc(initial_tc)
+    default_rate_tc(initial_tc),
+    default_rate_fw(initial_rate_fw)
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
