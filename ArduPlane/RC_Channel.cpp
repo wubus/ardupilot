@@ -79,7 +79,7 @@ void RC_Channel_Plane::do_aux_function_q_assist_state(AuxSwitchPos ch_flag)
 
 void RC_Channel_Plane::do_aux_function_crow_mode(AuxSwitchPos ch_flag)
 {
-        switch(ch_flag) {
+    switch(ch_flag) {
         case AuxSwitchPos::HIGH:
             plane.crow_mode = Plane::CrowMode::CROW_DISABLED;
             gcs().send_text(MAV_SEVERITY_INFO, "Crow Flaps Disabled");
@@ -93,6 +93,20 @@ void RC_Channel_Plane::do_aux_function_crow_mode(AuxSwitchPos ch_flag)
             gcs().send_text(MAV_SEVERITY_INFO, "Normal Crow Flaps");
             break;
         }    
+}
+
+void RC_Channel_Plane::do_aux_function_wing_deploy(AuxSwitchPos ch_flag)
+{
+    switch(ch_flag) {
+        case AuxSwitchPos::HIGH:
+            plane.wing_deploy = true;
+            break;
+        case AuxSwitchPos::LOW:
+            plane.wing_deploy = false;
+            break;
+        case AuxSwitchPos::MIDDLE:
+            break; // do nothing
+    }
 }
 
 void RC_Channel_Plane::do_aux_function_soaring_3pos(AuxSwitchPos ch_flag)
@@ -315,6 +329,10 @@ bool RC_Channel_Plane::do_aux_function(const AUX_FUNC ch_option, const AuxSwitch
 
     case AUX_FUNC::CROW_SELECT:
         do_aux_function_crow_mode(ch_flag);
+        break;
+
+    case AUX_FUNC::USER_FUNC1:
+        do_aux_function_wing_deploy(ch_flag);
         break;
 
 #if HAL_QUADPLANE_ENABLED

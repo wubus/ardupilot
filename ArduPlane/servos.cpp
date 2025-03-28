@@ -603,6 +603,17 @@ void Plane::set_takeoff_expected(void)
     }
 }
 
+void Plane::set_wing_deployment(void)
+{
+    if (plane.wing_deploy == true) {
+        SRV_Channels::set_output_scaled(SRV_Channel::k_motor7, 100);
+        SRV_Channels::set_output_scaled(SRV_Channel::k_motor8, 100);
+    } else {
+        SRV_Channels::set_output_scaled(SRV_Channel::k_motor7, 0);
+        SRV_Channels::set_output_scaled(SRV_Channel::k_motor8, 0);
+    }  
+}
+
 /*
   setup flap outputs
  */
@@ -852,6 +863,8 @@ void Plane::set_servos(void)
 
     // setup flap outputs
     set_servos_flaps();
+
+    set_wing_deployment();
 
 #if AP_LANDINGGEAR_ENABLED
     // setup landing gear output

@@ -1109,6 +1109,7 @@ private:
     void set_takeoff_expected(void);
     void set_servos_old_elevons(void);
     void set_servos_flaps(void);
+    void set_wing_deployment(void);
     void set_landing_gear(void);
     void dspoiler_update(void);
     void airbrake_update(void);
@@ -1223,6 +1224,8 @@ private:
     };
 
     CrowMode crow_mode = CrowMode::NORMAL;
+
+    bool wing_deploy = false;
 
     enum class FlareMode {
         FLARE_DISABLED = 0,
