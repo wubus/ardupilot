@@ -52,7 +52,7 @@ public:
 
 	// rate_controller_run - run lowest level body-frame rate controller and send outputs to the motors
 	// should be called at 100hz or more
-	virtual void rate_controller_run(int32_t target_pitch_angle = 0) override;
+	virtual void rate_controller_run(int32_t target_pitch_angle = 0, bool wing_deploy = true, uint32_t tsld = 1000) override;
 
     // Update Alt_Hold angle maximum
     void update_althold_lean_angle_max(float throttle_in) override;

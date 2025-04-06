@@ -21,7 +21,9 @@ public:
     /// @param  initial_p       Initial value for the P term.
     ///
     AC_P(const float &initial_p = 0.0f) :
-        default_kp(initial_p)
+        default_kp(initial_p),
+        default_kp_fw(initial_p),
+        default_kp_wf(initial_p)
     {
         AP_Param::setup_object_defaults(this, var_info);
     }
@@ -41,6 +43,7 @@ public:
     /// @returns		The updated control output.
     ///
     float       get_p(float error) const;
+    float       update_p_gain(int32_t pat, bool wd, uint32_t tsld);
 
     /// Load gain properties
     ///
@@ -59,12 +62,17 @@ public:
     // accessors
     AP_Float    &kP() { return _kp; }
     const AP_Float &kP() const { return _kp; }
+    AP_Float    &kP_fw() { return _kp_fw; }
     void        kP(const float v) { _kp.set(v); }
+    void        kP_fw(const float v) {_kp_fw.set(v);}
 
     static const struct AP_Param::GroupInfo        var_info[];
 
 private:
     AP_Float        _kp;
-
+    AP_Float        _kp_fw;
+    AP_Float        _kp_wf;
     const float default_kp;
+    const float default_kp_fw;
+    const float default_kp_wf;
 };

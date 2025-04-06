@@ -1226,6 +1226,9 @@ private:
     CrowMode crow_mode = CrowMode::NORMAL;
 
     bool wing_deploy = false;
+    uint32_t wing_deploy_start = 0;
+    uint32_t millis_since_wing_deploy = 1000;
+
 
     enum class FlareMode {
         FLARE_DISABLED = 0,

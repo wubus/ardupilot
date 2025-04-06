@@ -42,7 +42,7 @@ public:
 
     // Constructor for PID
     AC_PID(float initial_p, float initial_i, float initial_d, float initial_ff, float initial_imax, float initial_filt_T_hz, float initial_filt_E_hz, float initial_filt_D_hz,
-           float initial_srmax=0, float initial_srtau=1.0, float initial_dff=0, float initial_p_fw=0.13, float initial_i_fw=0.0, float initial_d_fw=0.0);
+           float initial_srmax=0, float initial_srtau=1.0, float initial_dff=0, float initial_p_fw=0.13, float initial_i_fw=0.0, float initial_d_fw=0.0, float initial_p_wf=0.13, float initial_i_wf=0.0, float initial_d_wf=0.0);
     AC_PID(const AC_PID::Defaults &defaults) :
         AC_PID(
             defaults.p,
@@ -68,7 +68,7 @@ public:
     //  target and error are filtered
     //  the derivative is then calculated and filtered
     //  the integral is then updated based on the setting of the limit flag
-    float update_all(float target, float measurement, float dt, bool limit = false, float boost = 1.0f, int32_t pitch_angle_target = 0);
+    float update_all(float target, float measurement, float dt, bool limit = false, float boost = 1.0f, int32_t pitch_angle_target = 0, bool wing_deploy = true, uint32_t tsld = 1000);
 
     //  update_error - set error input to PID controller and calculate outputs
     //  target is set to zero and error is set and filtered
@@ -84,9 +84,9 @@ public:
     float get_d() const;
     float get_ff() const;
 
-    float update_p_gain(int32_t pitch_angle_target); // function for implementing gain scheduling. I will need pilot pitch input as an argument probably?
-    float update_d_gain(int32_t pitch_angle_target);
-    float update_i_gain(int32_t pitch_angle_target);
+    float update_p_gain(int32_t pitch_angle_target, bool wing_deploy, uint32_t tsld); // function for implementing gain scheduling. I will need pilot pitch input as an argument probably?
+    float update_d_gain(int32_t pitch_angle_target, bool wing_deploy, uint32_t tsld);
+    float update_i_gain(int32_t pitch_angle_target, bool wing_deploy, uint32_t tsld);
 
     // reset_I - reset the integrator
     void reset_I();
@@ -121,6 +121,9 @@ public:
     AP_Float &kP_fw() { return _kp_fw; }
     AP_Float &kI_fw() { return _ki_fw; }
     AP_Float &kD_fw() { return _kd_fw; }
+    AP_Float &kP_wf() { return _kp_wf; }
+    AP_Float &kI_wf() { return _ki_wf; }
+    AP_Float &kD_wf() { return _kd_wf; }
 
     float imax() const { return _kimax.get(); }
     float pdmax() const { return _kpdmax.get(); }
@@ -170,7 +173,7 @@ protected:
 
     //  update_i - update the integral
     //  if the limit flag is set the integral is only allowed to shrink
-    void update_i(float dt, bool limit, int32_t pitch_angle_target = 0);
+    void update_i(float dt, bool limit, int32_t pitch_angle_target = 0, bool wing_fold = false, uint32_t tsld = 1000);
 
     // parameters
     AP_Float _kp;
@@ -187,6 +190,9 @@ protected:
     AP_Float _kp_fw;
     AP_Float _ki_fw;
     AP_Float _kd_fw;
+    AP_Float _kp_wf;
+    AP_Float _kd_wf;
+    AP_Float _ki_wf;
 
 #if AP_FILTER_ENABLED
     AP_Int8 _notch_T_filter;
@@ -235,4 +241,7 @@ private:
     const float default_kp_fw;
     const float default_ki_fw;
     const float default_kd_fw;
+    const float default_kp_wf;
+    const float default_ki_wf;
+    const float default_kd_wf;
 };

@@ -6,6 +6,10 @@
 #define HAL_QUADPLANE_ENABLED 1
 #endif
 
+#ifndef HAL_WINGFOLDING_ENABLED
+#define HAL_WINGFOLDING_ENABLED 1
+#endif
+
 #if HAL_QUADPLANE_ENABLED
 
 #include <AP_Motors/AP_Motors.h>

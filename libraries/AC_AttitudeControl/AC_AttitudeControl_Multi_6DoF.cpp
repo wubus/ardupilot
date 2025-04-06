@@ -11,7 +11,7 @@
 // rate commands result in the vehicle behaving as a ordinary copter.
 
 // run lowest level body-frame rate controller and send outputs to the motors
-void AC_AttitudeControl_Multi_6DoF::rate_controller_run(int32_t target_pitch_angle) {
+void AC_AttitudeControl_Multi_6DoF::rate_controller_run(int32_t target_pitch_angle, bool wing_deploy, uint32_t tsld) {
 
     // pass current offsets to motors and run baseclass controller
     // motors require the offsets to know which way is up
@@ -99,11 +99,11 @@ void AC_AttitudeControl_Multi_6DoF::set_forward_lateral(float &euler_pitch_angle
 
 // Command euler yaw rate and pitch angle with roll angle specified in body frame
 // (used only by tailsitter quadplanes)
-void AC_AttitudeControl_Multi_6DoF::input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool plane_controls, float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_rate_cds) {
+void AC_AttitudeControl_Multi_6DoF::input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool plane_controls, float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_rate_cds, bool wing_deploy, uint32_t tsld) {
     _motors.set_lateral(0.0f);
     _motors.set_forward(0.0f);
 
-    AC_AttitudeControl_Multi::input_euler_rate_yaw_euler_angle_pitch_bf_roll(plane_controls, euler_roll_angle_cd, euler_pitch_angle_cd, euler_yaw_rate_cds);
+    AC_AttitudeControl_Multi::input_euler_rate_yaw_euler_angle_pitch_bf_roll(plane_controls, euler_roll_angle_cd, euler_pitch_angle_cd, euler_yaw_rate_cds, wing_deploy, tsld);
 }
 
 // Command an euler roll, pitch, and yaw rate with angular velocity feedforward and smoothing

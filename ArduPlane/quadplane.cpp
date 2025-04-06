@@ -948,10 +948,11 @@ void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
 
             if (!(tailsitter.input_type & Tailsitter::input::TAILSITTER_INPUT_PLANE)) {
                 // In multicopter input mode, the roll and yaw stick axes are independent of pitch
+                plane.millis_since_wing_deploy = AP_HAL::millis() - plane.wing_deploy_start;
                 attitude_control->input_euler_rate_yaw_euler_angle_pitch_bf_roll(false,
                                                                     plane.nav_roll_cd,
                                                                     plane.nav_pitch_cd,
-                                                                    yaw_rate_cds);
+                                                                    yaw_rate_cds, plane.wing_deploy, plane.millis_since_wing_deploy);
                 return;
             } else {
                 // In plane input mode, the roll and yaw sticks are swapped
@@ -981,7 +982,7 @@ void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
                 attitude_control->input_euler_rate_yaw_euler_angle_pitch_bf_roll(true,
                                                                                 p_roll_angle,
                                                                                 plane.nav_pitch_cd,
-                                                                                p_yaw_rate);
+                                                                                p_yaw_rate, plane.wing_deploy, plane.millis_since_wing_deploy);
                 return;
             }
         }
@@ -1960,6 +1961,7 @@ void QuadPlane::motors_output(bool run_rate_controller)
         }
     }
 
+
 #if AP_ADVANCEDFAILSAFE_ENABLED
     if (!plane.arming.is_armed_and_safety_off() ||
         (plane.afs.should_crash_vehicle() && !plane.afs.terminating_vehicle_via_landing()) ||
@@ -1996,7 +1998,7 @@ void QuadPlane::motors_output(bool run_rate_controller)
         motors->set_dt(last_loop_time_s);
         attitude_control->set_dt(last_loop_time_s);
         pos_control->set_dt(last_loop_time_s);
-        attitude_control->rate_controller_run(plane.nav_pitch_cd); //
+        attitude_control->rate_controller_run(plane.nav_pitch_cd, plane.wing_deploy, plane.millis_since_wing_deploy); //
         last_att_control_ms = now;
     }
 

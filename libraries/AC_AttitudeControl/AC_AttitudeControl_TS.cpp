@@ -58,7 +58,7 @@ void AC_AttitudeControl_TS::relax_attitude_controllers(bool exclude_pitch)
 // Command euler yaw rate and pitch angle with roll angle specified in body frame
 // (used only by tailsitter quadplanes)
 // If plane_controls is true, swap the effects of roll and yaw as euler pitch approaches 90 degrees
-void AC_AttitudeControl_TS::input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool plane_controls, float body_roll_cd, float euler_pitch_cd, float euler_yaw_rate_cds)
+void AC_AttitudeControl_TS::input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool plane_controls, float body_roll_cd, float euler_pitch_cd, float euler_yaw_rate_cds, bool wing_deploy, uint32_t tsld)
 {
     // Convert from centidegrees on public interface to radians
     float euler_yaw_rate = radians(euler_yaw_rate_cds*0.01f);
@@ -122,5 +122,5 @@ void AC_AttitudeControl_TS::input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool 
     error_quat.to_axis_angle(att_error);
 
     // Compute the angular velocity target from the attitude error
-    _ang_vel_body = update_ang_vel_target_from_att_error(att_error);
+    _ang_vel_body = update_ang_vel_target_from_att_error(att_error, euler_pitch_cd, wing_deploy, tsld);
 }

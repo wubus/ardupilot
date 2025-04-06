@@ -1016,12 +1016,13 @@ bool AC_AttitudeControl::ang_vel_to_euler_rate(const Quaternion& att, const Vect
 }
 
 // Update rate_target_ang_vel using attitude_error_rot_vec_rad
-Vector3f AC_AttitudeControl::update_ang_vel_target_from_att_error(const Vector3f &attitude_error_rot_vec_rad)
+Vector3f AC_AttitudeControl::
+update_ang_vel_target_from_att_error(const Vector3f &attitude_error_rot_vec_rad, const int32_t pitch_cd_cmd, bool wing_deploy, uint32_t tsld)
 {
     Vector3f rate_target_ang_vel;
 
     // Compute the roll angular velocity demand from the roll angle error
-    const float angleP_roll = _p_angle_roll.kP() * _angle_P_scale.x;
+    const float angleP_roll = _p_angle_roll.update_p_gain(pitch_cd_cmd, wing_deploy, tsld) * _angle_P_scale.x;
     if (_use_sqrt_controller && !is_zero(get_accel_roll_max_radss())) {
         rate_target_ang_vel.x = sqrt_controller(attitude_error_rot_vec_rad.x, angleP_roll, constrain_float(get_accel_roll_max_radss() / 2.0f, AC_ATTITUDE_ACCEL_RP_CONTROLLER_MIN_RADSS, AC_ATTITUDE_ACCEL_RP_CONTROLLER_MAX_RADSS), _dt);
     } else {
@@ -1029,7 +1030,7 @@ Vector3f AC_AttitudeControl::update_ang_vel_target_from_att_error(const Vector3f
     }
 
     // Compute the pitch angular velocity demand from the pitch angle error
-    const float angleP_pitch = _p_angle_pitch.kP() * _angle_P_scale.y;
+    const float angleP_pitch = _p_angle_pitch.update_p_gain(pitch_cd_cmd, wing_deploy, tsld) * _angle_P_scale.y;
     if (_use_sqrt_controller && !is_zero(get_accel_pitch_max_radss())) {
         rate_target_ang_vel.y = sqrt_controller(attitude_error_rot_vec_rad.y, angleP_pitch, constrain_float(get_accel_pitch_max_radss() / 2.0f, AC_ATTITUDE_ACCEL_RP_CONTROLLER_MIN_RADSS, AC_ATTITUDE_ACCEL_RP_CONTROLLER_MAX_RADSS), _dt);
     } else {
@@ -1037,7 +1038,7 @@ Vector3f AC_AttitudeControl::update_ang_vel_target_from_att_error(const Vector3f
     }
 
     // Compute the yaw angular velocity demand from the yaw angle error
-    const float angleP_yaw = _p_angle_yaw.kP() * _angle_P_scale.z;
+    const float angleP_yaw = _p_angle_yaw.update_p_gain(pitch_cd_cmd, wing_deploy, tsld) * _angle_P_scale.z;
     if (_use_sqrt_controller && !is_zero(get_accel_yaw_max_radss())) {
         rate_target_ang_vel.z = sqrt_controller(attitude_error_rot_vec_rad.z, angleP_yaw, constrain_float(get_accel_yaw_max_radss() / 2.0f, AC_ATTITUDE_ACCEL_Y_CONTROLLER_MIN_RADSS, AC_ATTITUDE_ACCEL_Y_CONTROLLER_MAX_RADSS), _dt);
     } else {

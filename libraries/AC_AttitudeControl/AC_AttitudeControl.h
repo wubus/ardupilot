@@ -171,7 +171,7 @@ public:
     // Command euler yaw rate and pitch angle with roll angle specified in body frame
     // (implemented only in AC_AttitudeControl_TS for tailsitter quadplanes)
     virtual void input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool plane_controls, float euler_roll_angle_cd, 
-        float euler_pitch_angle_cd, float euler_yaw_rate_cds) {}
+        float euler_pitch_angle_cd, float euler_yaw_rate_cds, bool wing_deploy, uint32_t tsld) {}
 
     // Command an euler roll, pitch, and yaw rate with angular velocity feedforward and smoothing
     virtual void input_euler_rate_roll_pitch_yaw(float euler_roll_rate_cds, float euler_pitch_rate_cds, float euler_yaw_rate_cds);
@@ -197,7 +197,7 @@ public:
     Quaternion attitude_from_thrust_vector(Vector3f thrust_vector, float heading_angle) const;
 
     // Run angular velocity controller and send outputs to the motors
-    virtual void rate_controller_run(int32_t target_pitch_angle = 0) = 0;
+    virtual void rate_controller_run(int32_t target_pitch_angle = 0, bool wing_deploy = true, uint32_t tsld = 1000) = 0;
 
     // Convert a 321-intrinsic euler angle derivative to an angular velocity vector
     void euler_rate_to_ang_vel(const Quaternion& att, const Vector3f& euler_rate_rads, Vector3f& ang_vel_rads);
@@ -418,7 +418,7 @@ public:
 protected:
 
     // Update rate_target_ang_vel using attitude_error_rot_vec_rad
-    Vector3f update_ang_vel_target_from_att_error(const Vector3f &attitude_error_rot_vec_rad);
+    Vector3f update_ang_vel_target_from_att_error(const Vector3f &attitude_error_rot_vec_rad, const int32_t pitch_cd_cmd = 0, bool wing_deploy = true, uint32_t tsld = 1000);
 
     // Return angle in radians to be added to roll angle. Used by heli to counteract
     // tail rotor thrust in hover. Overloaded by AC_Attitude_Heli to return angle.

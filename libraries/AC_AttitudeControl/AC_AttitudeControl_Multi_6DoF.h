@@ -42,7 +42,7 @@ public:
 
     // Command euler yaw rate and pitch angle with roll angle specified in body frame
     // (used only by tailsitter quadplanes)
-    void input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool plane_controls, float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_rate_cds) override;
+    void input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool plane_controls, float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_rate_cds, bool wing_deploy = true, uint32_t tsld = 1000) override;
 
     // Command an euler roll, pitch, and yaw rate with angular velocity feedforward and smoothing
     void input_euler_rate_roll_pitch_yaw(float euler_roll_rate_cds, float euler_pitch_rate_cds, float euler_yaw_rate_cds) override;
@@ -60,7 +60,7 @@ public:
     void input_angle_step_bf_roll_pitch_yaw(float roll_angle_step_bf_cd, float pitch_angle_step_bf_cd, float yaw_angle_step_bf_cd) override;
 
     // run lowest level body-frame rate controller and send outputs to the motors
-    void rate_controller_run(int32_t target_pitch_angle = 0) override;
+    void rate_controller_run(int32_t target_pitch_angle = 0, bool wing_deploy = true, uint32_t tsld = 1000) override;
 
     // limiting lean angle based on throttle makes no sense for 6DoF, always allow 90 deg, return in centi-degrees
     float get_althold_lean_angle_max_cd() const override { return 9000.0f; }

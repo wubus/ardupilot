@@ -97,12 +97,17 @@ void RC_Channel_Plane::do_aux_function_crow_mode(AuxSwitchPos ch_flag)
 
 void RC_Channel_Plane::do_aux_function_wing_deploy(AuxSwitchPos ch_flag)
 {
+
     switch(ch_flag) {
         case AuxSwitchPos::HIGH:
             plane.wing_deploy = true;
+            plane.wing_deploy_start = AP_HAL::millis();
+            plane.millis_since_wing_deploy = 0;
             break;
         case AuxSwitchPos::LOW:
             plane.wing_deploy = false;
+            plane.wing_deploy_start = AP_HAL::millis();
+            plane.millis_since_wing_deploy = 0;
             break;
         case AuxSwitchPos::MIDDLE:
             break; // do nothing
