@@ -348,7 +348,7 @@ void AC_PID::update_i(float dt, bool limit, int32_t pitch_angle_target, bool win
 float AC_PID::update_p_gain(int32_t pat, bool wd, uint32_t tsld) // pat = pitch angle target
 {
     float kp_h;
-    float t_ = tsld / 1000.0f;
+    float t_ = (tsld-250.0f) / 1570.0f;
     float k_scalar = constrain_float(t_, 0, 1);
 
     if (wd) {
