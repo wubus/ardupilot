@@ -357,21 +357,26 @@ float AC_PID::update_p_gain(int32_t pat, bool wd, uint32_t tsld) // pat = pitch 
     else {
         kp_h = k_scalar*_kp_wf + (1-k_scalar)*_kp;
     }
-    if (abs(pat) <= 2500) {
-        return kp_h;
-    }
-    else if (abs(pat) >= 7000) {
-        return _kp_fw;
+    if (wd) {
+        if (abs(pat) <= 3700) {
+            return kp_h;
+        }
+        else if (abs(pat) >= 7000) {
+            return _kp_fw;
+        }
+        else {
+            return kp_h + (_kp_fw - kp_h) * (abs(pat) - 3700) / 3300;
+        }
     }
     else {
-        return kp_h + (_kp_fw - kp_h) * (abs(pat) - 2500) / 4500;
+        return kp_h;
     }
 }
 
 float AC_PID::update_d_gain(int32_t pat, bool wd, uint32_t tsld) // pat = pitch angle target
 {
     float kd_h;
-    float t_ = tsld / 1000.0f;
+    float t_ = (tsld-250.0f) / 1570.0f;
     float k_scalar = constrain_float(t_, 0, 1);
 
     if (wd) {
@@ -380,21 +385,26 @@ float AC_PID::update_d_gain(int32_t pat, bool wd, uint32_t tsld) // pat = pitch 
     else {
         kd_h = k_scalar*_kd_wf + (1-k_scalar)*_kd;
     }
-    if (abs(pat) <= 2500) {
-        return kd_h;
-    }
-    else if (abs(pat) >= 7000) {
-        return _kd_fw;
+    if (wd) {
+        if (abs(pat) <= 3700) {
+            return kd_h;
+        }
+        else if (abs(pat) >= 7000) {
+            return _kd_fw;
+        }
+        else {
+            return kd_h + (_kd_fw - kd_h) * (abs(pat) - 3700) / 3300;
+        }
     }
     else {
-        return kd_h + (_kd_fw - kd_h) * (abs(pat) - 2500) / 4500;
+        return kd_h;
     }
 }
 
 float AC_PID::update_i_gain(int32_t pat, bool wd, uint32_t tsld) // pat = pitch angle target
 {
     float ki_h;
-    float t_ = tsld / 1000.0f;
+    float t_ = (tsld-250.0f) / 1570.0f;
     float k_scalar = constrain_float(t_, 0, 1);
 
     if (wd) {
@@ -403,14 +413,19 @@ float AC_PID::update_i_gain(int32_t pat, bool wd, uint32_t tsld) // pat = pitch 
     else {
         ki_h = k_scalar*_ki_wf + (1-k_scalar)*_ki;
     }
-    if (abs(pat) <= 2500) {
-        return ki_h;
-    }
-    else if (abs(pat) >= 7000) {
-        return _ki_fw;
+    if (wd) {
+        if (abs(pat) <= 3700) {
+            return ki_h;
+        }
+        else if (abs(pat) >= 7000) {
+            return _ki_fw;
+        }
+        else {
+            return ki_h + (_ki_fw - ki_h) * (abs(pat) - 3700) / 3300;
+        }
     }
     else {
-        return ki_h + (_ki_fw - ki_h) * (abs(pat) - 2500) / 4500;
+        return ki_h;
     }
 }
 

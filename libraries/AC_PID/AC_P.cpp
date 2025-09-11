@@ -32,7 +32,7 @@ void AC_P::save_gains()
 float AC_P::update_p_gain(int32_t pat, bool wd, uint32_t tsld) // pat = pitch angle target
 {
     float kp_h;
-    float t_ = tsld / 1000.0f;
+    float t_ = (tsld-250.0f) / 1570.0f;
     float k_scalar = constrain_float(t_, 0, 1);
     if (wd) {
         kp_h = k_scalar*_kp + (1-k_scalar)*_kp_wf;
@@ -40,13 +40,18 @@ float AC_P::update_p_gain(int32_t pat, bool wd, uint32_t tsld) // pat = pitch an
     else {
         kp_h = k_scalar*_kp_wf + (1-k_scalar)*_kp;
     }
-    if (abs(pat) <= 2500) {
-        return kp_h;
-    }
-    else if (abs(pat) >= 7000) {
-        return _kp_fw;
+    if (wd) {
+        if (abs(pat) <= 3700) {
+            return kp_h;
+        }
+        else if (abs(pat) >= 7000) {
+            return _kp_fw;
+        }
+        else {
+            return kp_h + (_kp_fw - kp_h) * (abs(pat) - 3700) / 3300;
+        }
     }
     else {
-        return kp_h + (_kp_fw - kp_h) * (abs(pat) - 2500) / 4500;
+        return kp_h;
     }
 }

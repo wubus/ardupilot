@@ -925,7 +925,7 @@ void QuadPlane::run_esc_calibration(void)
  */
 void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
 {
-    bool use_multicopter_control = true; //in_vtol_mode() && !tailsitter.in_vtol_transition();
+    bool use_multicopter_control = in_vtol_mode() && !tailsitter.in_vtol_transition();
     bool use_yaw_target = false;
 
     float yaw_target_cd = 0.0;
@@ -933,7 +933,7 @@ void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
         use_multicopter_control = true;
         use_yaw_target = false;
     }
-    use_yaw_target = false;
+
     // normal control modes for VTOL and FW flight
     // tailsitter in transition to VTOL flight is not really in a VTOL mode yet
     if (use_multicopter_control) {
@@ -988,15 +988,11 @@ void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
         }
 
         if (use_yaw_target) {
-            attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(plane.nav_roll_cd,
-                                                                plane.nav_pitch_cd,
-                                                                yaw_rate_cds);
-            /*
             attitude_control->input_euler_angle_roll_pitch_yaw(plane.nav_roll_cd,
                                                                plane.nav_pitch_cd,
                                                                yaw_target_cd,
                                                                true);
-                                                               */
+                                                               
         } else {
             // use euler angle attitude control
             attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(plane.nav_roll_cd,

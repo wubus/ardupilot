@@ -305,11 +305,11 @@ void Tailsitter::output(void)
                 throttle = motors->thr_lin.actuator_to_thrust(MIN(transition_throttle_vtol*0.01,1.0));
             } else {
                 throttle = motors->get_throttle_hover();
-                // work out equivelent motors throttle level for cruise
+                // work out equivalent motors throttle level for cruise
                 throttle = MAX(throttle,motors->thr_lin.actuator_to_thrust(plane.aparm.throttle_cruise.get() * 0.01));
             }
 
-            SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, 0.0);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, 0.0); //why is this a thing? 
             plane.rudder_dt = 0;
 
             // in assisted flight this is done in the normal motor output path
@@ -852,7 +852,7 @@ void Tailsitter_Transition::update()
                                                                       plane.nav_pitch_cd,
                                                                       0);
         // set throttle at either hover throttle or current throttle, whichever is higher, through the transition
-        quadplane.attitude_control->set_throttle_out(MAX(motors->get_throttle_hover(),quadplane.attitude_control->get_throttle_in()), true, 0);
+        quadplane.attitude_control->set_throttle_out(quadplane.attitude_control->get_throttle_in(), false, 0);
         quadplane.motors_output();
         break;
     }
@@ -885,7 +885,7 @@ void Tailsitter_Transition::VTOL_update()
         float aspeed;
         bool have_airspeed = quadplane.ahrs.airspeed_estimate(aspeed);
         // provide assistance in forward flight portion of tailsitter transition
-        quadplane.assisted_flight = quadplane.assist.should_assist(aspeed, have_airspeed);
+        quadplane.assisted_flight = true; // ( I always want assistance with transition ) quadplane.assist.should_assist(aspeed, have_airspeed);
         if (!quadplane.tailsitter.transition_vtol_complete()) {
             return;
         }

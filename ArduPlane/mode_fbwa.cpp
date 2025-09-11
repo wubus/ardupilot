@@ -12,7 +12,7 @@ void ModeFBWA::update()
     } else {
         plane.nav_pitch_cd = -(pitch_input * plane.pitch_limit_min*100);
     }
-    plane.adjust_nav_pitch_throttle();
+    //plane.adjust_nav_pitch_throttle();
     plane.nav_pitch_cd = constrain_int32(plane.nav_pitch_cd, plane.pitch_limit_min*100, plane.aparm.pitch_limit_max.get()*100);
     if (plane.fly_inverted()) {
         plane.nav_pitch_cd = -plane.nav_pitch_cd;
