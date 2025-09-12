@@ -299,16 +299,16 @@ void Tailsitter::output(void)
         if (plane.arming.is_armed_and_safety_off() && in_vtol_transition() && !quadplane.throttle_wait) {
             /*
               during transitions to vtol mode set the throttle to hover thrust, center the rudder
-            */
+            
             if (!is_negative(transition_throttle_vtol)) { 
                 // Q_TAILSIT_THR_VT is positive use it until transition is complete
                 throttle = motors->thr_lin.actuator_to_thrust(MIN(transition_throttle_vtol*0.01,1.0));
             } else {
                 throttle = motors->get_throttle_hover();
                 // work out equivalent motors throttle level for cruise
-                throttle = MAX(throttle,motors->thr_lin.actuator_to_thrust(plane.aparm.throttle_cruise.get() * 0.01));
             }
-
+            */
+            throttle = quadplane.attitude_control->get_throttle_in();
             SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, 0.0); //why is this a thing? 
             plane.rudder_dt = 0;
 
