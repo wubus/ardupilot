@@ -740,7 +740,7 @@ void AP_MotorsMulticopter::output_motor_mask(float thrust, uint16_t mask, float 
                  copter frame roll is plane frame yaw as this only
                  apples to either tilted motors or tailsitters
                  */
-                float diff_thrust = get_roll_factor(i) * rudder_dt * 0.5f;
+                //float diff_thrust = get_roll_factor(i) * rudder_dt * 0.5f;
                 set_actuator_with_slew(_actuator[i], thrust); // + diff_thrust);
             } else {
                 // zero throttle

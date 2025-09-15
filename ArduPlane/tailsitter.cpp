@@ -882,8 +882,8 @@ void Tailsitter_Transition::VTOL_update()
     last_vtol_mode_ms = now;
 
     if (transition_state == TRANSITION_ANGLE_WAIT_VTOL) {
-        float aspeed;
-        bool have_airspeed = quadplane.ahrs.airspeed_estimate(aspeed);
+        //float aspeed;
+        //bool have_airspeed = quadplane.ahrs.airspeed_estimate(aspeed);
         // provide assistance in forward flight portion of tailsitter transition
         quadplane.assisted_flight = true; // ( I always want assistance with transition ) quadplane.assist.should_assist(aspeed, have_airspeed);
         if (!quadplane.tailsitter.transition_vtol_complete()) {

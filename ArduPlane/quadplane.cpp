@@ -1994,7 +1994,7 @@ void QuadPlane::motors_output(bool run_rate_controller)
         motors->set_dt(last_loop_time_s);
         attitude_control->set_dt(last_loop_time_s);
         pos_control->set_dt(last_loop_time_s);
-        attitude_control->rate_controller_run(plane.nav_pitch_cd, plane.wing_deploy, plane.millis_since_wing_deploy); //
+        attitude_control->rate_controller_run(in_vtol_mode() ? plane.nav_pitch_cd : plane.nav_pitch_cd-90.0f, plane.wing_deploy, plane.millis_since_wing_deploy); //
         last_att_control_ms = now;
     }
 
