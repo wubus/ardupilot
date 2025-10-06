@@ -155,7 +155,7 @@ float Plane::get_adjusted_throttle_input(bool no_deadzone) const
         (flight_option_enabled(FlightOptions::CENTER_THROTTLE_TRIM)) == 0) {
        return  get_throttle_input(no_deadzone);
     }
-    float ret = channel_throttle->get_range() * throttle_curve(aparm.throttle_cruise * 0.01, 0, 0.5 + 0.5*channel_throttle->norm_input());
+    float ret = channel_throttle->get_range() * throttle_curve(0.5, 0.2, 0.5 + 0.5*channel_throttle->norm_input());
     if (reversed_throttle) {
         // RC option for reverse throttle has been set
         return -ret;

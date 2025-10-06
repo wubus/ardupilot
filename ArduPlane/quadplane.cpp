@@ -1124,8 +1124,8 @@ float QuadPlane::get_pilot_throttle()
 
     if (is_positive(throttle_expo)) {
         // get hover throttle level [0,1]
-        float thr_mid = motors->get_throttle_hover();
-        float thrust_curve_expo = constrain_float(throttle_expo, 0.0f, 1.0f);
+        float thr_mid = 0.5f; //motors->get_throttle_hover();
+        float thrust_curve_expo = 0.2f; //constrain_float(throttle_expo, 0.0f, 1.0f);
         // this puts mid stick at hover throttle
         return throttle_curve(thr_mid, thrust_curve_expo, throttle_in);
     } else {
@@ -1994,7 +1994,7 @@ void QuadPlane::motors_output(bool run_rate_controller)
         motors->set_dt(last_loop_time_s);
         attitude_control->set_dt(last_loop_time_s);
         pos_control->set_dt(last_loop_time_s);
-        attitude_control->rate_controller_run(in_vtol_mode() ? plane.nav_pitch_cd : plane.nav_pitch_cd-90.0f, plane.wing_deploy, plane.millis_since_wing_deploy); //
+        attitude_control->rate_controller_run(in_vtol_mode() ? plane.nav_pitch_cd : plane.nav_pitch_cd-9000.0f, plane.wing_deploy, plane.millis_since_wing_deploy); //
         last_att_control_ms = now;
     }
 

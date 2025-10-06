@@ -395,7 +395,7 @@ float AC_AttitudeControl_Multi::get_throttle_boosted(float throttle_in)
 float AC_AttitudeControl_Multi::get_throttle_avg_max(float throttle_in)
 {
     throttle_in = constrain_float(throttle_in, 0.0f, 1.0f);
-    return MAX(throttle_in, throttle_in * MAX(0.0f, 1.0f - _throttle_rpy_mix) + _motors.get_throttle_hover() * _throttle_rpy_mix);
+    return throttle_in; //throttle_in * MAX(0.0f, 1.0f - _throttle_rpy_mix) + _motors.get_throttle_hover() * _throttle_rpy_mix);
 }
 
 // update_throttle_gain_boost - boost angle_p/pd each cycle on high throttle slew

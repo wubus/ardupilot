@@ -337,7 +337,7 @@ void Tailsitter::output(void)
 
         if (!quadplane.assisted_flight) {
             // set AP_MotorsMatrix throttles for forward flight
-            motors->output_motor_mask(throttle, motor_mask, plane.rudder_dt);
+            motors->output_motor_mask(motors->thr_lin.thrust_to_actuator(throttle), motor_mask, plane.rudder_dt);
 
             // in forward flight: set motor tilt servos and throttles using FW controller
             if (vectored_forward_gain > 0) {
@@ -360,7 +360,8 @@ void Tailsitter::output(void)
     // to motors_output() from quadplane.update(), unless we are in assisted flight
     // tailsitter in TRANSITION_ANGLE_WAIT_FW is not really in assisted flight, its still in a VTOL mode
     if (quadplane.assisted_flight && (transition->transition_state != Tailsitter_Transition::TRANSITION_ANGLE_WAIT_FW)) {
-        quadplane.hold_stabilize(throttle);
+        float thr_in = quadplane.get_pilot_throttle();
+        quadplane.hold_stabilize(thr_in);
         quadplane.motors_output(true);
 
         if (quadplane.option_is_set(QuadPlane::OPTION::TAILSIT_Q_ASSIST_MOTORS_ONLY)) {
@@ -847,12 +848,12 @@ void Tailsitter_Transition::update()
         // multiply by 0.1 to convert (degrees/second * milliseconds) to centi degrees
         plane.nav_pitch_cd = constrain_float(fw_transition_initial_pitch - (quadplane.tailsitter.transition_rate_fw * dt) * 0.1f * (plane.fly_inverted()?-1.0f:1.0f), -8500, 8500);
         plane.nav_roll_cd = 0;
-        quadplane.disable_yaw_rate_time_constant();
+        //quadplane.disable_yaw_rate_time_constant();
         quadplane.attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(plane.nav_roll_cd,
                                                                       plane.nav_pitch_cd,
                                                                       0);
         // set throttle at either hover throttle or current throttle, whichever is higher, through the transition
-        quadplane.attitude_control->set_throttle_out(quadplane.attitude_control->get_throttle_in(), false, 0);
+        quadplane.attitude_control->set_throttle_out(quadplane.get_pilot_throttle(), false, 0);
         quadplane.motors_output();
         break;
     }

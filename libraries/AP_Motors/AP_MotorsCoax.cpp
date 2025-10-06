@@ -146,8 +146,10 @@ void AP_MotorsCoax::output_armed_stabilizing()
         limit.throttle_upper = true;
     }
 
+    /*
     throttle_avg_max = constrain_float(throttle_avg_max, throttle_thrust, _throttle_thrust_max);
-
+    */
+   
     float rp_thrust_max = MAX(fabsf(roll_thrust), fabsf(pitch_thrust));
 
     // calculate how much roll and pitch must be scaled to leave enough range for the minimum yaw

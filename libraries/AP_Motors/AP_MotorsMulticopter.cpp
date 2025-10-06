@@ -748,6 +748,8 @@ void AP_MotorsMulticopter::output_motor_mask(float thrust, uint16_t mask, float 
             }
             int16_t pwm_output = pwm_min + pwm_range * _actuator[i];
             rc_write(i, pwm_output);
+        } else if ((mask & (1U << i)) != 0) {
+            rc_write_angle(i, 0.0);
         }
     }
 }
