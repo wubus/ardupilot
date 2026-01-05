@@ -182,6 +182,7 @@ float Plane::stabilize_pitch_get_pitch_out()
     const float speed_scaler = get_speed_scaler();
 #if HAL_QUADPLANE_ENABLED
     if (!quadplane.use_fw_attitude_controllers()) {
+        // GCS_SEND_TEXT(MAV_SEVERITY_NOTICE,"Using FW attitude controllers returned false");
         // use the VTOL rate for control, to ensure consistency
         const auto &pid_info = quadplane.attitude_control->get_rate_pitch_pid().get_pid_info();
 
@@ -228,7 +229,7 @@ float Plane::stabilize_pitch_get_pitch_out()
     }
 
     return pitchController.get_servo_out(demanded_pitch - ahrs.pitch_sensor, speed_scaler, disable_integrator,
-                                         ground_mode && !(plane.flight_option_enabled(FlightOptions::DISABLE_GROUND_PID_SUPPRESSION)));
+                                         ground_mode && !(plane.flight_option_enabled(FlightOptions::DISABLE_GROUND_PID_SUPPRESSION)));//, control_mode == &mode_launch);
 }
 
 /*

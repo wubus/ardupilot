@@ -114,6 +114,21 @@ void RC_Channel_Plane::do_aux_function_wing_deploy(AuxSwitchPos ch_flag)
     }
 }
 
+void RC_Channel_Plane::do_aux_function_detect_launch(AuxSwitchPos ch_flag)
+{
+    switch(ch_flag) {
+        case AuxSwitchPos::HIGH:
+            if (plane.control_mode == &plane.mode_launch) {
+                plane.manual_launch_triggered = true;
+                gcs().send_text(MAV_SEVERITY_INFO, "Launch Detection: TRIGGERED MANUALLY");
+                break;
+            }
+            break;
+        case AuxSwitchPos::MIDDLE:
+        case AuxSwitchPos::LOW:
+            break; // do nothing
+    }
+}
 void RC_Channel_Plane::do_aux_function_soaring_3pos(AuxSwitchPos ch_flag)
 {
 #if HAL_SOARING_ENABLED
@@ -338,6 +353,10 @@ bool RC_Channel_Plane::do_aux_function(const AUX_FUNC ch_option, const AuxSwitch
 
     case AUX_FUNC::USER_FUNC1:
         do_aux_function_wing_deploy(ch_flag);
+        break;
+
+    case AUX_FUNC::USER_FUNC2:
+        do_aux_function_detect_launch(ch_flag);
         break;
 
 #if HAL_QUADPLANE_ENABLED

@@ -55,10 +55,15 @@ void AC_AttitudeControl_TS::relax_attitude_controllers(bool exclude_pitch)
     }
 }
 
+void AC_AttitudeControl_TS::disable_pitch_control()
+{
+    _ang_vel_body.y = _ahrs.get_gyro().y;
+}
+
 // Command euler yaw rate and pitch angle with roll angle specified in body frame
 // (used only by tailsitter quadplanes)
 // If plane_controls is true, swap the effects of roll and yaw as euler pitch approaches 90 degrees
-void AC_AttitudeControl_TS::input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool plane_controls, float body_roll_cd, float euler_pitch_cd, float euler_yaw_rate_cds, bool wing_deploy, uint32_t tsld)
+void AC_AttitudeControl_TS::input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool plane_controls, float body_roll_cd, float euler_pitch_cd, float euler_yaw_rate_cds, bool wing_deploy, uint32_t tsld, bool in_projectile_flight, bool launch_mode)
 {
     // Convert from centidegrees on public interface to radians
     float euler_yaw_rate = radians(euler_yaw_rate_cds*0.01f);
@@ -88,6 +93,23 @@ void AC_AttitudeControl_TS::input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool 
         yaw_rate /= (error_ratio * error_ratio);
     }
     _euler_angle_target.z = wrap_PI(_euler_angle_target.z + yaw_rate * _dt);  
+
+    if (in_projectile_flight) {
+
+        Vector3f current_eulers;
+        attitude_body.to_euler(current_eulers.x, current_eulers.y, current_eulers.z);
+
+        _attitude_target.from_euler(body_roll_cd, current_eulers.y, _euler_angle_target.z);
+        // Set rate feedforward requests to zero
+        _euler_rate_target.zero();
+        _ang_vel_target.zero();
+
+        error_quat = attitude_body.inverse() * _attitude_target;
+        error_quat.to_axis_angle(att_error);
+
+        _ang_vel_body = update_ang_vel_target_from_att_error(att_error, euler_pitch_cd, wing_deploy, tsld, true);
+        return;    
+    }
 
     // init attitude target to desired euler yaw and pitch with zero roll
     _attitude_target.from_euler(0, euler_pitch, _euler_angle_target.z);   // left stick controls heading angle
@@ -122,5 +144,5 @@ void AC_AttitudeControl_TS::input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool 
     error_quat.to_axis_angle(att_error);
 
     // Compute the angular velocity target from the attitude error
-    _ang_vel_body = update_ang_vel_target_from_att_error(att_error, euler_pitch_cd, wing_deploy, tsld);
+    _ang_vel_body = update_ang_vel_target_from_att_error(att_error, euler_pitch_cd, wing_deploy, tsld, launch_mode);
 }

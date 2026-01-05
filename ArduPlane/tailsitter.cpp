@@ -19,6 +19,7 @@
  */
 #include "tailsitter.h"
 #include "Plane.h"
+#include <GCS_MAVLink/GCS.h>
 
 #if HAL_QUADPLANE_ENABLED
 
@@ -284,6 +285,7 @@ void Tailsitter::output(void)
 {
     if (!enabled() || quadplane.motor_test.running || !quadplane.initialised) {
         // if motor test is running we don't want to overwrite it with output_motor_mask or motors_output
+        gcs().send_text(MAV_SEVERITY_INFO,"Tailsitter output skipped");
         return;
     }
 
@@ -361,6 +363,7 @@ void Tailsitter::output(void)
     // tailsitter in TRANSITION_ANGLE_WAIT_FW is not really in assisted flight, its still in a VTOL mode
     if (quadplane.assisted_flight && (transition->transition_state != Tailsitter_Transition::TRANSITION_ANGLE_WAIT_FW)) {
         float thr_in = quadplane.get_pilot_throttle();
+        // gcs().send_text(MAV_SEVERITY_INFO,"Hold stabilize is getting called in servos_output");        
         quadplane.hold_stabilize(thr_in);
         quadplane.motors_output(true);
 
@@ -417,6 +420,7 @@ void Tailsitter::output(void)
             return;
         }
     } else {
+        // gcs().send_text(MAV_SEVERITY_INFO,"Normal copter motors output is being called in tailsitter");
         quadplane.motors_output(false);
     }
 
@@ -426,9 +430,19 @@ void Tailsitter::output(void)
     plane.yawController.reset_I();
 
     // pull in copter control outputs
-    SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, (motors->get_yaw()+motors->get_yaw_ff())*-SERVO_MAX*VTOL_yaw_scale);
+    if (plane.wing_deploy) {
+        SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, (motors->get_yaw()+motors->get_yaw_ff())*-SERVO_MAX*VTOL_yaw_scale);
+    }
+    else {
+        SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, 0);
+    }
     SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, (motors->get_pitch()+motors->get_pitch_ff())*SERVO_MAX*VTOL_pitch_scale);
     SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, (motors->get_roll()+motors->get_roll_ff())*SERVO_MAX*VTOL_roll_scale);
+    if (plane.control_mode == &plane.mode_launch) {
+        if (plane.control_mode->is_launch_flare()){
+            SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, 2725);
+        }
+    }
 
     if (plane.arming.is_armed_and_safety_off()) {
         // scale surfaces for throttle

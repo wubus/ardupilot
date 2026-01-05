@@ -63,6 +63,7 @@ const AP_Param::GroupInfo AP_PitchController::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("2SRV_RLL",      6, AP_PitchController, _roll_ff,        1.0f),
 
+
     // index 7, 8 reserved for old IMAX, FF
 
     // @Param: _RATE_P
@@ -157,6 +158,8 @@ const AP_Param::GroupInfo AP_PitchController::var_info[] = {
     // @User: Advanced
 
     AP_SUBGROUPINFO(rate_pid, "_RATE_", 11, AP_PitchController, AC_PID),
+
+    AP_GROUPINFO("2SRV_TC_LM", 12, AP_PitchController, gains.tau_lm,    0.3f),
 
     AP_GROUPEND
 };
@@ -313,7 +316,7 @@ float AP_PitchController::_get_coordination_rate_offset(float &aspeed, bool &inv
 // 4) minimum FBW airspeed (metres/sec)
 // 5) maximum FBW airspeed (metres/sec)
 //
-float AP_PitchController::get_servo_out(int32_t angle_err, float scaler, bool disable_integrator, bool ground_mode)
+float AP_PitchController::get_servo_out(int32_t angle_err, float scaler, bool disable_integrator, bool ground_mode, bool launch_mode)
 {
     // Calculate offset to pitch rate demand required to maintain pitch angle whilst banking
     // Calculate ideal turn rate from bank angle and airspeed assuming a level coordinated turn
@@ -331,6 +334,9 @@ float AP_PitchController::get_servo_out(int32_t angle_err, float scaler, bool di
     // Calculate the desired pitch rate (deg/sec) from the angle error
     angle_err_deg = angle_err * 0.01;
     float desired_rate = angle_err_deg / gains.tau;
+    if (launch_mode) {
+        desired_rate = angle_err_deg / gains.tau_lm;
+    }
 
     // limit the maximum pitch rate demand. Don't apply when inverted
     // as the rates will be tuned when upright, and it is common that

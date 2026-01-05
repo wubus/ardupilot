@@ -66,6 +66,7 @@ public:
     friend class ModeQAutotune;
     friend class ModeQAcro;
     friend class ModeLoiterAltQLand;
+    friend class ModeLaunch;
     
     QuadPlane(AP_AHRS &_ahrs);
 
@@ -268,6 +269,7 @@ private:
     float get_pilot_throttle(void);
     void control_hover(void);
     void relax_attitude_control();
+    void zero_pitch_control();
 
     bool check_land_complete(void);
     bool land_detector(uint32_t timeout_ms);

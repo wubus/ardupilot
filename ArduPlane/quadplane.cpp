@@ -927,6 +927,7 @@ void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
 {
     bool use_multicopter_control = in_vtol_mode() && !tailsitter.in_vtol_transition();
     bool use_yaw_target = false;
+    plane.millis_since_wing_deploy = AP_HAL::millis() - plane.wing_deploy_start;
 
     float yaw_target_cd = 0.0;
     if (!use_multicopter_control && transition->update_yaw_target(yaw_target_cd)) {
@@ -937,7 +938,7 @@ void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
     // normal control modes for VTOL and FW flight
     // tailsitter in transition to VTOL flight is not really in a VTOL mode yet
     if (use_multicopter_control) {
-
+    
         // Pilot input, use yaw rate time constant
         set_pilot_yaw_rate_time_constant();
 
@@ -945,14 +946,18 @@ void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
         // Angle mode attitude control for pitch and body-frame roll, rate control for euler yaw.
         if (tailsitter.enabled() &&
             (tailsitter.input_type & Tailsitter::input::TAILSITTER_INPUT_BF_ROLL)) {
-
-            if (!(tailsitter.input_type & Tailsitter::input::TAILSITTER_INPUT_PLANE)) {
-                // In multicopter input mode, the roll and yaw stick axes are independent of pitch
-                plane.millis_since_wing_deploy = AP_HAL::millis() - plane.wing_deploy_start;
+            if (plane.control_mode->in_projectile_flight()) {
                 attitude_control->input_euler_rate_yaw_euler_angle_pitch_bf_roll(false,
                                                                     plane.nav_roll_cd,
                                                                     plane.nav_pitch_cd,
-                                                                    yaw_rate_cds, plane.wing_deploy, plane.millis_since_wing_deploy);
+                                                                    yaw_rate_cds, plane.wing_deploy, plane.millis_since_wing_deploy, true, true);
+                return;
+            } else if (!(tailsitter.input_type & Tailsitter::input::TAILSITTER_INPUT_PLANE)) {
+                // In multicopter input mode, the roll and yaw stick axes are independent of pitch
+                attitude_control->input_euler_rate_yaw_euler_angle_pitch_bf_roll(false,
+                                                                    plane.nav_roll_cd,
+                                                                    plane.nav_pitch_cd,
+                                                                    yaw_rate_cds, plane.wing_deploy, plane.millis_since_wing_deploy, false, plane.control_mode == &plane.mode_launch);
                 return;
             } else {
                 // In plane input mode, the roll and yaw sticks are swapped
@@ -967,7 +972,7 @@ void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
                     roll_limit = tailsitter.max_roll_angle * 100.0f;
                 }
                 // Prevent a divide by zero
-                const float yaw_rate_max = command_model_pilot.get_rate(plane.nav_pitch_cd);
+                const float yaw_rate_max = command_model_pilot.get_rate(in_vtol_mode() ? plane.nav_pitch_cd : plane.nav_pitch_cd-9000);
                 float yaw_rate_limit = ((yaw_rate_max < 1.0f) ? 1 : yaw_rate_max) * 100.0f;
                 float yaw2roll_scale = roll_limit / yaw_rate_limit;
 
@@ -982,7 +987,7 @@ void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
                 attitude_control->input_euler_rate_yaw_euler_angle_pitch_bf_roll(true,
                                                                                 p_roll_angle,
                                                                                 plane.nav_pitch_cd,
-                                                                                p_yaw_rate, plane.wing_deploy, plane.millis_since_wing_deploy);
+                                                                                p_yaw_rate, plane.wing_deploy, plane.millis_since_wing_deploy, false, plane.control_mode == &plane.mode_launch);
                 return;
             }
         }
@@ -1021,9 +1026,19 @@ void QuadPlane::hold_stabilize(float throttle_in)
     // call attitude controller
     multicopter_attitude_rate_update(get_desired_yaw_rate_cds(false));
 
+    if (plane.control_mode == &plane.mode_launch) {
+        throttle_in = plane.control_mode->get_throttle_by_launch_phase();
+        // if (plane.control_mode->is_launch_flare()){
+        //     SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, 2725);
+        // }
+        // if (plane.control_mode->in_projectile_flight()) {
+        //     zero_pitch_control();                                        // UNCOMMENT LATER? 
+        // }
+    }
+
     if ((throttle_in <= 0) && !air_mode_active()) {
         set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
-        attitude_control->set_throttle_out(0, true, 0);
+        attitude_control->set_throttle_out(0, false, 0);
         relax_attitude_control();
     } else {
         set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
@@ -1070,6 +1085,12 @@ void QuadPlane::relax_attitude_control()
     // disable roll and yaw control for vectored tailsitters
     // if not a vectored tailsitter completely disable attitude control
     attitude_control->relax_attitude_controllers(!tailsitter.relax_pitch());
+}
+
+void QuadPlane::zero_pitch_control()
+{
+    // disable pitch control
+    attitude_control->disable_pitch_control();
 }
 
 /*
@@ -1329,6 +1350,11 @@ float QuadPlane::get_pilot_input_yaw_rate_cds(void) const
         return 0;
     }
 
+    if (plane.control_mode->in_projectile_flight()) {
+        // no pilot yaw control in projectile flight
+        return 0;
+    }
+
     if ((plane.g.stick_mixing == StickMixing::NONE) &&
         (plane.control_mode == &plane.mode_qrtl ||
          plane.control_mode->is_guided_mode() ||
@@ -1339,7 +1365,7 @@ float QuadPlane::get_pilot_input_yaw_rate_cds(void) const
     // add in rudder input
     //const float yaw_rate_max = command_model_pilot.get_rate();
 
-    const float yaw_rate_max = command_model_pilot.get_rate(plane.nav_pitch_cd);
+    const float yaw_rate_max = command_model_pilot.get_rate(in_vtol_mode() ? plane.nav_pitch_cd : plane.nav_pitch_cd-9000);
     float max_rate = yaw_rate_max;
     if (!in_vtol_mode() && tailsitter.enabled()) {
         // scale by RUDD_DT_GAIN when not in a VTOL mode for
@@ -1994,7 +2020,12 @@ void QuadPlane::motors_output(bool run_rate_controller)
         motors->set_dt(last_loop_time_s);
         attitude_control->set_dt(last_loop_time_s);
         pos_control->set_dt(last_loop_time_s);
-        attitude_control->rate_controller_run(in_vtol_mode() ? plane.nav_pitch_cd : plane.nav_pitch_cd-9000.0f, plane.wing_deploy, plane.millis_since_wing_deploy); //
+        attitude_control->rate_controller_run(in_vtol_mode() ? plane.nav_pitch_cd : plane.nav_pitch_cd-9000, plane.wing_deploy, plane.millis_since_wing_deploy, plane.control_mode==&plane.mode_launch); //
+        // if (plane.control_mode == &plane.mode_launch) { // not necessary if I'm not mistaken
+        //     if (plane.control_mode->is_launch_flare()){
+        //         SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, 2725);
+        //     }
+        // }
         last_att_control_ms = now;
     }
 
@@ -3840,7 +3871,7 @@ float QuadPlane::get_weathervane_yaw_rate_cds(void)
                                      is_takeoff,
                                      in_vtol_land_sequence())) {
         //return constrain_float(wv_output * (1/45.0), -100.0, 100.0) * command_model_pilot.get_rate() * 0.5;
-        return constrain_float(wv_output * (1/45.0), -100.0, 100.0) * command_model_pilot.get_rate(plane.nav_pitch_cd) * 0.5;
+        return constrain_float(wv_output * (1/45.0), -100.0, 100.0) * command_model_pilot.get_rate(in_vtol_mode() ? plane.nav_pitch_cd : plane.nav_pitch_cd-9000) * 0.5;
     }
 
     return 0.0;

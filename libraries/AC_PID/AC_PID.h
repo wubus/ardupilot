@@ -42,7 +42,8 @@ public:
 
     // Constructor for PID
     AC_PID(float initial_p, float initial_i, float initial_d, float initial_ff, float initial_imax, float initial_filt_T_hz, float initial_filt_E_hz, float initial_filt_D_hz,
-           float initial_srmax=0, float initial_srtau=1.0, float initial_dff=0, float initial_p_fw=0.13, float initial_i_fw=0.0, float initial_d_fw=0.0, float initial_p_wf=0.13, float initial_i_wf=0.0, float initial_d_wf=0.0);
+           float initial_srmax=0, float initial_srtau=1.0, float initial_dff=0, float initial_p_fw=0.13, float initial_i_fw=0.0, float initial_d_fw=0.0, float initial_p_wf=0.13, float initial_i_wf=0.0, float initial_d_wf=0.0,
+           float initial_p_lm=0.13, float initial_i_lm=0.0, float initial_d_lm=0.0);//, float initial_ff_lm=0.0, float initial_ff_fw=0.0, float initial_ff_wf=0.0);//, float initial_dff_lm=0.0, float initial_dff_fw=0.0, float initial_dff_wf=0.0);
     AC_PID(const AC_PID::Defaults &defaults) :
         AC_PID(
             defaults.p,
@@ -58,6 +59,12 @@ public:
             defaults.dff,
             defaults.p,
             defaults.i,
+            defaults.d,
+            defaults.p,
+            defaults.i,
+            defaults.d,
+            defaults.p,
+            defaults.i,
             defaults.d
             )
         { }
@@ -68,7 +75,7 @@ public:
     //  target and error are filtered
     //  the derivative is then calculated and filtered
     //  the integral is then updated based on the setting of the limit flag
-    float update_all(float target, float measurement, float dt, bool limit = false, float boost = 1.0f, int32_t pitch_angle_target = 0, bool wing_deploy = true, uint32_t tsld = 1000);
+    float update_all(float target, float measurement, float dt, bool limit = false, float boost = 1.0f, int32_t pitch_angle_target = 0, bool wing_deploy = true, uint32_t tsld = 1000, bool launch_mode = false);
 
     //  update_error - set error input to PID controller and calculate outputs
     //  target is set to zero and error is set and filtered
@@ -84,9 +91,11 @@ public:
     float get_d() const;
     float get_ff() const;
 
-    float update_p_gain(int32_t pitch_angle_target, bool wing_deploy, uint32_t tsld); // function for implementing gain scheduling. I will need pilot pitch input as an argument probably?
-    float update_d_gain(int32_t pitch_angle_target, bool wing_deploy, uint32_t tsld);
-    float update_i_gain(int32_t pitch_angle_target, bool wing_deploy, uint32_t tsld);
+    float update_p_gain(int32_t pitch_angle_target, bool wing_deploy, uint32_t tsld, bool lm); // function for implementing gain scheduling. I will need pilot pitch input as an argument probably?
+    float update_d_gain(int32_t pitch_angle_target, bool wing_deploy, uint32_t tsld, bool lm);
+    float update_i_gain(int32_t pitch_angle_target, bool wing_deploy, uint32_t tsld, bool lm);
+    float update_ff_gain(int32_t pitch_angle_target, bool wing_deploy, uint32_t tsld, bool lm);
+    //float update_dff_gain(int32_t pitch_angle_target, bool wing_deploy, uint32_t tsld, bool lm);
 
     // reset_I - reset the integrator
     void reset_I();
@@ -173,7 +182,7 @@ protected:
 
     //  update_i - update the integral
     //  if the limit flag is set the integral is only allowed to shrink
-    void update_i(float dt, bool limit, int32_t pitch_angle_target = 0, bool wing_fold = false, uint32_t tsld = 1000);
+    void update_i(float dt, bool limit, int32_t pitch_angle_target = 0, bool wing_deploy = false, uint32_t tsld = 1000, bool lm = false);
 
     // parameters
     AP_Float _kp;
@@ -193,6 +202,15 @@ protected:
     AP_Float _kp_wf;
     AP_Float _kd_wf;
     AP_Float _ki_wf;
+    AP_Float _kp_lm;
+    AP_Float _kd_lm;
+    AP_Float _ki_lm;
+    // AP_Float _kff_lm;
+    // AP_Float _kff_fw;
+    // AP_Float _kff_wf;
+    // AP_Float _kdff_lm;
+    // AP_Float _kdff_fw;
+    // AP_Float _kdff_wf;
 
 #if AP_FILTER_ENABLED
     AP_Int8 _notch_T_filter;
@@ -244,4 +262,14 @@ private:
     const float default_kp_wf;
     const float default_ki_wf;
     const float default_kd_wf;
+    const float default_kp_lm;
+    const float default_ki_lm;
+    const float default_kd_lm;
+    // const float default_kff_lm;
+    // const float default_kff_fw;
+    // const float default_kff_wf;
+    // const float default_kdff_lm;
+    // const float default_kdff_fw;
+    // const float default_kdff_wf;
+    int8_t check_iters = 0;
 };

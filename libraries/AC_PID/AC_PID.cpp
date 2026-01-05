@@ -3,6 +3,7 @@
 
 #include <AP_Math/AP_Math.h>
 #include "AC_PID.h"
+#include <GCS_MAVLink/GCS.h>
 
 #define AC_PID_DEFAULT_NOTCH_ATTENUATION 40
 
@@ -109,12 +110,31 @@ const AP_Param::GroupInfo AC_PID::var_info[] = {
 
     AP_GROUPINFO_FLAGS_DEFAULT_POINTER("D_WF", 22, AC_PID, _kd_wf, default_kd),
 
+    AP_GROUPINFO_FLAGS_DEFAULT_POINTER("P_LM", 23, AC_PID, _kp_lm, default_kp),
+
+    AP_GROUPINFO_FLAGS_DEFAULT_POINTER("I_LM", 24, AC_PID, _ki_lm, default_ki),
+
+    AP_GROUPINFO_FLAGS_DEFAULT_POINTER("D_LM", 25, AC_PID, _kd_lm, default_kd),
+
+    // AP_GROUPINFO_FLAGS_DEFAULT_POINTER("FFLM", 26, AC_PID, _kff_lm, default_kd),
+
+    // AP_GROUPINFO_FLAGS_DEFAULT_POINTER("FFFW", 27, AC_PID, _kff_fw, default_kd),
+
+    // AP_GROUPINFO_FLAGS_DEFAULT_POINTER("FFWF", 28, AC_PID, _kff_wf, default_kd),
+
+    // AP_GROUPINFO_FLAGS_DEFAULT_POINTER("DFLM", 35, AC_PID, _kdff_lm, default_kdff),
+
+    // AP_GROUPINFO_FLAGS_DEFAULT_POINTER("DFFW", 36, AC_PID, _kdff_fw, default_kdff),
+
+    // AP_GROUPINFO_FLAGS_DEFAULT_POINTER("DFWF", 37, AC_PID, _kdff_wf, default_kdff),
+
     AP_GROUPEND
 };
 
 // Constructor
 AC_PID::AC_PID(float initial_p, float initial_i, float initial_d, float initial_ff, float initial_imax, float initial_filt_T_hz, float initial_filt_E_hz, float initial_filt_D_hz,
-               float initial_srmax, float initial_srtau, float initial_dff, float initial_p_fw, float initial_i_fw, float initial_d_fw, float initial_p_wf, float initial_i_wf, float initial_d_wf) :
+               float initial_srmax, float initial_srtau, float initial_dff, float initial_p_fw, float initial_i_fw, float initial_d_fw, float initial_p_wf, float initial_i_wf, float initial_d_wf,
+               float initial_p_lm, float initial_i_lm, float initial_d_lm) : //, float initial_ff_lm, float initial_ff_fw, float initial_ff_wf) :
     default_kp(initial_p),
     default_ki(initial_i),
     default_kd(initial_d),
@@ -130,7 +150,16 @@ AC_PID::AC_PID(float initial_p, float initial_i, float initial_d, float initial_
     default_kd_fw(initial_d),
     default_kp_wf(initial_p),
     default_ki_wf(initial_i),
-    default_kd_wf(initial_d)
+    default_kd_wf(initial_d),
+    default_kp_lm(initial_p),
+    default_ki_lm(initial_i),
+    default_kd_lm(initial_d)
+    // default_kff_lm(initial_ff),
+    // default_kff_fw(initial_ff),
+    // default_kff_wf(initial_ff)
+    // default_kdff_lm(initial_dff),
+    // default_kdff_fw(initial_dff),
+    // default_kdff_wf(initial_dff)
 {
     // load parameter values from eeprom
     AP_Param::setup_object_defaults(this, var_info);
@@ -209,7 +238,7 @@ void AC_PID::set_notch_sample_rate(float sample_rate)
 //  target and error are filtered
 //  the derivative is then calculated and filtered
 //  the integral is then updated based on the setting of the limit flag
-float AC_PID::update_all(float target, float measurement, float dt, bool limit, float boost, int32_t pitch_angle_target, bool wing_deploy, uint32_t tsld)
+float AC_PID::update_all(float target, float measurement, float dt, bool limit, float boost, int32_t pitch_angle_target, bool wing_deploy, uint32_t tsld, bool lm)
 {
     // don't process inf or NaN
     if (!isfinite(target) || !isfinite(measurement)) {
@@ -261,8 +290,8 @@ float AC_PID::update_all(float target, float measurement, float dt, bool limit, 
     // update I term
     update_i(dt, limit, pitch_angle_target);
 
-    float P_out = (_error * update_p_gain(pitch_angle_target, wing_deploy, tsld));
-    float D_out = (_derivative * update_d_gain(pitch_angle_target, wing_deploy, tsld));
+    float P_out = (_error * update_p_gain(pitch_angle_target, wing_deploy, tsld, lm));
+    float D_out = (_derivative * update_d_gain(pitch_angle_target, wing_deploy, tsld, lm));
 
     // calculate slew limit modifier for P+D
     _pid_info.Dmod = _slew_limiter.modifier((_pid_info.P + _pid_info.D) * _slew_limit_scale, dt);
@@ -292,8 +321,8 @@ float AC_PID::update_all(float target, float measurement, float dt, bool limit, 
     _pid_info.error = _error;
     _pid_info.P = P_out;
     _pid_info.D = D_out;
-    _pid_info.FF = _target * _kff;
-    _pid_info.DFF = _target_derivative * _kdff;
+    _pid_info.FF = _target * _kff; //update_ff_gain(pitch_angle_target, wing_deploy, tsld, lm);
+    _pid_info.DFF = _target_derivative * _kdff; // update_dff_gain(pitch_angle_target, wing_deploy, tsld, lm);
 
     return P_out + D_out + _integrator;
 }
@@ -326,12 +355,12 @@ float AC_PID::update_error(float error, float dt, bool limit)
 
 //  update_i - update the integral
 //  If the limit flag is set the integral is only allowed to shrink
-void AC_PID::update_i(float dt, bool limit, int32_t pitch_angle_target, bool wing_fold, uint32_t tsld)
+void AC_PID::update_i(float dt, bool limit, int32_t pitch_angle_target, bool wing_deploy, uint32_t tsld, bool lm)
 {
     if (!is_zero(_ki) && is_positive(dt)) {
         // Ensure that integrator can only be reduced if the output is saturated
         if (!limit || ((is_positive(_integrator) && is_negative(_error)) || (is_negative(_integrator) && is_positive(_error)))) {
-            _integrator += ((float)_error * update_i_gain(pitch_angle_target, wing_fold, tsld)) * dt;
+            _integrator += ((float)_error * update_i_gain(pitch_angle_target, wing_deploy, tsld, lm)) * dt;
             _integrator = constrain_float(_integrator, -_kimax, _kimax);
         }
     } else {
@@ -345,23 +374,41 @@ void AC_PID::update_i(float dt, bool limit, int32_t pitch_angle_target, bool win
     _flags._I_set = false;
 }
 
-float AC_PID::update_p_gain(int32_t pat, bool wd, uint32_t tsld) // pat = pitch angle target
+float AC_PID::update_p_gain(int32_t pat, bool wd, uint32_t tsld, bool lm) // pat = pitch angle target
 {
     float kp_h;
-    float t_ = (tsld-250.0f) / 1570.0f;
-    float k_scalar = constrain_float(t_, 0, 1);
+    float kp_a;
+    float kp_b;
+    float t_;
+    check_iters++;
 
-    if (wd) {
-        kp_h = k_scalar*_kp + (1-k_scalar)*_kp_wf;
+    if (!lm) {
+        t_ = (tsld-250.0f) / 1570.0f;
+        kp_a = _kp;
+        kp_b = _kp_wf;
     }
     else {
-        kp_h = k_scalar*_kp_wf + (1-k_scalar)*_kp;
+        t_ = tsld/1400.0f;
+        kp_a = _kp_fw;
+        kp_b = _kp_lm;
     }
+    float k_scalar = constrain_float(t_, 0, 1);
+    // if (check_iters == 10000) {
+    //     GCS_SEND_TEXT(MAV_SEVERITY_NOTICE, "t_: %.3f, k_scalar: %.3f, wd: %d, lm: %d", t_, k_scalar, wd, lm);
+    //     check_iters = 0;
+    // }
     if (wd) {
-        if (abs(pat) <= 3700) {
+        kp_h = k_scalar*kp_a + (1-k_scalar)*kp_b;
+    }
+    else {
+        kp_h = k_scalar*kp_b + (1-k_scalar)*kp_a;
+    }
+
+    if (wd && !lm) {
+        if (pat >= -3700) {
             return kp_h;
         }
-        else if (abs(pat) >= 7000) {
+        else if (pat <= -7000) {
             return _kp_fw;
         }
         else {
@@ -373,23 +420,120 @@ float AC_PID::update_p_gain(int32_t pat, bool wd, uint32_t tsld) // pat = pitch 
     }
 }
 
-float AC_PID::update_d_gain(int32_t pat, bool wd, uint32_t tsld) // pat = pitch angle target
+// float AC_PID::update_ff_gain(int32_t pat, bool wd, uint32_t tsld, bool lm) // pat = pitch angle target
+// {
+//     float kff_h;
+//     float kff_a;
+//     float kff_b;
+//     float t_;
+
+//     if (!lm) {
+//         t_ = (tsld-250.0f) / 1570.0f;
+//         kff_a = _kff;
+//         kff_b = _kff_wf;
+//     }
+//     else {
+//         t_ = tsld/1400.0f;
+//         kff_a = _kff_fw;
+//         kff_b = _kff_lm;
+//     }
+//     float k_scalar = constrain_float(t_, 0, 1);
+
+//     if (wd) {
+//         kff_h = k_scalar*kff_a + (1-k_scalar)*kff_b;
+//     }
+//     else {
+//         kff_h = k_scalar*kff_b + (1-k_scalar)*kff_a;
+//     }
+
+//     if (wd && !lm) {
+//         if (pat >= -3700) {
+//             return kff_h;
+//         }
+//         else if (pat <= -7000) {
+//             return _kff_fw;
+//         }
+//         else {
+//             return kff_h + (_kff_fw - kff_h) * (abs(pat) - 3700) / 3300;
+//         }
+//     }
+//     else {
+//         return kff_h;
+//     }
+// }
+
+// float AC_PID::update_dff_gain(int32_t pat, bool wd, uint32_t tsld, bool lm) // pat = pitch angle target
+// {
+//     float kdff_h;
+//     float kdff_a;
+//     float kdff_b;
+//     float t_;
+
+//     if (!lm) {
+//         t_ = (tsld-250.0f) / 1570.0f;
+//         kdff_a = _kdff;
+//         kdff_b = _kdff_wf;
+//     }
+//     else {
+//         t_ = tsld/1400.0f;
+//         kdff_a = _kdff_fw;
+//         kdff_b = _kdff_lm;
+//     }
+//     float k_scalar = constrain_float(t_, 0, 1);
+
+//     if (wd) {
+//         kdff_h = k_scalar*kdff_a + (1-k_scalar)*kdff_b;
+//     }
+//     else {
+//         kdff_h = k_scalar*kdff_b + (1-k_scalar)*kdff_a;
+//     }
+
+//     if (wd && !lm) {
+//         if (pat >= -3700) {
+//             return kdff_h;
+//         }
+//         else if (pat <= -7000) {
+//             return _kdff_fw;
+//         }
+//         else {
+//             return kdff_h + (_kdff_fw - kdff_h) * (abs(pat) - 3700) / 3300;
+//         }
+//     }
+//     else {
+//         return kdff_h;
+//     }
+// }
+
+float AC_PID::update_d_gain(int32_t pat, bool wd, uint32_t tsld, bool lm) // pat = pitch angle target
 {
     float kd_h;
-    float t_ = (tsld-250.0f) / 1570.0f;
+    float kd_a;
+    float kd_b;
+    float t_;
+    if (!lm) {
+        t_ = (tsld-250.0f) / 1570.0f;
+        kd_a = _kd;
+        kd_b = _kd_wf;
+    }
+    else {
+        t_ = tsld/1400.0f;
+        kd_a = _kd_fw;
+        kd_b = _kd_lm;
+    }
     float k_scalar = constrain_float(t_, 0, 1);
 
     if (wd) {
-        kd_h = k_scalar*_kd + (1-k_scalar)*_kd_wf;
+        kd_h = k_scalar*kd_a + (1-k_scalar)*kd_b;
     }
     else {
-        kd_h = k_scalar*_kd_wf + (1-k_scalar)*_kd;
+        kd_h = k_scalar*kd_b + (1-k_scalar)*kd_a;
     }
-    if (wd) {
-        if (abs(pat) <= 3700) {
+
+    if (wd && !lm) {
+        if (pat >= -3700) {
             return kd_h;
         }
-        else if (abs(pat) >= 7000) {
+        else if (pat <= -7000) {
             return _kd_fw;
         }
         else {
@@ -401,23 +545,36 @@ float AC_PID::update_d_gain(int32_t pat, bool wd, uint32_t tsld) // pat = pitch 
     }
 }
 
-float AC_PID::update_i_gain(int32_t pat, bool wd, uint32_t tsld) // pat = pitch angle target
+float AC_PID::update_i_gain(int32_t pat, bool wd, uint32_t tsld, bool lm) // pat = pitch angle target
 {
     float ki_h;
-    float t_ = (tsld-250.0f) / 1570.0f;
+    float ki_a;
+    float ki_b;
+    float t_;
+    if (!lm) {
+        t_ = (tsld-250.0f) / 1570.0f;
+        ki_a = _ki;
+        ki_b = _ki_wf;
+    }
+    else {
+        t_ = tsld/1400.0f;
+        ki_a = _ki_fw;
+        ki_b = _ki_lm;
+    }
     float k_scalar = constrain_float(t_, 0, 1);
 
     if (wd) {
-        ki_h = k_scalar*_ki + (1-k_scalar)*_ki_wf;
+        ki_h = k_scalar*ki_a + (1-k_scalar)*ki_b;
     }
     else {
-        ki_h = k_scalar*_ki_wf + (1-k_scalar)*_ki;
+        ki_h = k_scalar*ki_b + (1-k_scalar)*ki_a;
     }
-    if (wd) {
-        if (abs(pat) <= 3700) {
+
+    if (wd && !lm) {
+        if (pat >= -3700) {
             return ki_h;
         }
-        else if (abs(pat) >= 7000) {
+        else if (pat <= -7000) {
             return _ki_fw;
         }
         else {

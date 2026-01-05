@@ -151,6 +151,7 @@ public:
     friend class ModeTraining;
     friend class ModeAcro;
     friend class ModeFBWA;
+    friend class ModeLaunch;
     friend class ModeFBWB;
     friend class ModeCruise;
     friend class ModeAutoTune;
@@ -294,6 +295,7 @@ private:
     ModeQRTL mode_qrtl;
     ModeQAcro mode_qacro;
     ModeLoiterAltQLand mode_loiter_qland;
+    ModeLaunch mode_launch;
 #if QAUTOTUNE_ENABLED
     ModeQAutotune mode_qautotune;
 #endif  // QAUTOTUNE_ENABLED
@@ -1226,9 +1228,9 @@ private:
     CrowMode crow_mode = CrowMode::NORMAL;
 
     bool wing_deploy = false;
+    bool manual_launch_triggered = false;
     uint32_t wing_deploy_start = 0;
     uint32_t millis_since_wing_deploy = 1000;
-
 
     enum class FlareMode {
         FLARE_DISABLED = 0,

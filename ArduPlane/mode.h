@@ -53,6 +53,7 @@ public:
         THERMAL       = 24,
 #if HAL_QUADPLANE_ENABLED
         LOITER_ALT_QLAND = 25,
+        LAUNCH = 26,
 #endif
     };
 
@@ -94,6 +95,12 @@ public:
     virtual bool is_vtol_mode() const { return false; }
     virtual bool is_vtol_man_throttle() const;
     virtual bool is_vtol_man_mode() const { return false; }
+
+    virtual bool in_projectile_flight() const { return false; }
+
+    virtual bool is_launch_flare() const { return false; }
+
+    virtual float get_throttle_by_launch_phase() const { return -1.0f; } 
 
     // guided or adsb mode
     virtual bool is_guided_mode() const { return false; }
@@ -516,6 +523,50 @@ public:
 
     void run() override;
 
+};
+
+class ModeLaunch : public Mode
+{
+public:
+
+    Number mode_number() const override { return Number::LAUNCH; }
+    const char *name() const override { return "LAUNCH"; }
+    const char *name4() const override { return "LNCH"; }
+
+    // methods that affect movement of the vehicle in this mode
+    void update() override;
+    
+    bool mode_allows_autotuning() const override { return false; }
+
+    void run() override;
+
+    enum LaunchPhase {
+        Disarmed,
+        PreLaunch,
+        LaunchDetected,
+        Stabilized,
+        Flare,
+        WingsDeploy,
+        Switch,
+    };
+    LaunchPhase phase = LaunchPhase::Disarmed;
+
+    bool is_launch_flare() const override { return phase == LaunchPhase::Flare; } 
+
+
+protected: 
+
+    bool in_projectile_flight() const override {return phase == LaunchDetected || phase == Stabilized; }
+
+    bool launch_detected();
+
+    float get_throttle_by_launch_phase() const override;
+
+    uint32_t launch_time = 0;
+
+    int32_t wd_initial_pitch = 0; // initial pitch in centi-degrees, set at wings deploy
+    uint32_t wd_time = 0;
+    float wd_pitch_rate = 0;
 };
 
 class ModeFBWB : public Mode
