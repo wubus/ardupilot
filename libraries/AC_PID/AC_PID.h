@@ -43,7 +43,7 @@ public:
     // Constructor for PID
     AC_PID(float initial_p, float initial_i, float initial_d, float initial_ff, float initial_imax, float initial_filt_T_hz, float initial_filt_E_hz, float initial_filt_D_hz,
            float initial_srmax=0, float initial_srtau=1.0, float initial_dff=0, float initial_p_fw=0.13, float initial_i_fw=0.0, float initial_d_fw=0.0, float initial_p_wf=0.13, float initial_i_wf=0.0, float initial_d_wf=0.0,
-           float initial_p_lm=0.13, float initial_i_lm=0.0, float initial_d_lm=0.0);//, float initial_ff_lm=0.0, float initial_ff_fw=0.0, float initial_ff_wf=0.0);//, float initial_dff_lm=0.0, float initial_dff_fw=0.0, float initial_dff_wf=0.0);
+           float initial_p_lm=0.13, float initial_i_lm=0.0, float initial_d_lm=0.0, float initial_p_lw=0.13, float initial_i_lw=0.0, float initial_d_lw=0.0);//, float initial_ff_lm=0.0, float initial_ff_fw=0.0, float initial_ff_wf=0.0);//, float initial_dff_lm=0.0, float initial_dff_fw=0.0, float initial_dff_wf=0.0);
     AC_PID(const AC_PID::Defaults &defaults) :
         AC_PID(
             defaults.p,
@@ -205,6 +205,9 @@ protected:
     AP_Float _kp_lm;
     AP_Float _kd_lm;
     AP_Float _ki_lm;
+    AP_Float _kp_lw;
+    AP_Float _kd_lw;
+    AP_Float _ki_lw;
     // AP_Float _kff_lm;
     // AP_Float _kff_fw;
     // AP_Float _kff_wf;
@@ -265,6 +268,9 @@ private:
     const float default_kp_lm;
     const float default_ki_lm;
     const float default_kd_lm;
+    const float default_kp_lw;
+    const float default_ki_lw;
+    const float default_kd_lw;
     // const float default_kff_lm;
     // const float default_kff_fw;
     // const float default_kff_wf;

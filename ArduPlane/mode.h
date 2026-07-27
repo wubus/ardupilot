@@ -98,7 +98,17 @@ public:
 
     virtual bool in_projectile_flight() const { return false; }
 
+    virtual bool launch_should_not_use_ailerons() const { return false; }
+
     virtual bool is_launch_flare() const { return false; }
+
+    virtual bool is_prelaunch() const { return false; }
+
+    virtual bool is_launch_detected() const { return false; }
+
+    virtual bool is_launch_stabilized() const { return false; }
+
+    virtual bool is_launch_wings_deploy() const { return false; }
 
     virtual float get_throttle_by_launch_phase() const { return -1.0f; } 
 
@@ -553,11 +563,20 @@ public:
 
     bool is_launch_flare() const override { return phase == LaunchPhase::Flare; } 
 
+    bool is_launch_detected() const override { return phase == LaunchPhase::LaunchDetected; }
+
+    bool is_launch_stabilized() const override { return phase == LaunchPhase::Stabilized; }
+
+    bool is_launch_wings_deploy() const override { return phase == LaunchPhase::WingsDeploy; }
+
+    bool is_prelaunch() const override { return phase == LaunchPhase::PreLaunch; }
 
 protected: 
 
-    bool in_projectile_flight() const override {return phase == LaunchDetected || phase == Stabilized; }
+    bool in_projectile_flight() const override {return phase == LaunchDetected || phase == Stabilized || phase == Flare || phase == WingsDeploy;} // purpose for checking how we should get throttle
 
+    bool launch_should_not_use_ailerons() const override { return phase == LaunchPhase::LaunchDetected || phase == LaunchPhase::Stabilized || phase == LaunchPhase::Flare; } // allow use of ailerons during early launch for better control authority, but not once we start flaring
+    
     bool launch_detected();
 
     float get_throttle_by_launch_phase() const override;

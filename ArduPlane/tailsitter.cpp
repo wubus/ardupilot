@@ -166,6 +166,10 @@ const AP_Param::GroupInfo Tailsitter::var_info[] = {
     // @Range: 0 15
     AP_GROUPINFO("MIN_VO", 22, Tailsitter, disk_loading_min_outflow, 0),
 
+    AP_GROUPINFO("RPMYAW", 23, Tailsitter, use_rpm_for_yaw, 1),
+
+    AP_GROUPINFO("EV_USE", 24, Tailsitter, use_elevons, 0),
+
     AP_GROUPEND
 };
 
@@ -430,19 +434,10 @@ void Tailsitter::output(void)
     plane.yawController.reset_I();
 
     // pull in copter control outputs
-    if (plane.wing_deploy) {
-        SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, (motors->get_yaw()+motors->get_yaw_ff())*-SERVO_MAX*VTOL_yaw_scale);
-    }
-    else {
-        SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, 0);
-    }
+
+    SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, (motors->get_yaw()+motors->get_yaw_ff())*-SERVO_MAX*VTOL_yaw_scale);
     SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, (motors->get_pitch()+motors->get_pitch_ff())*SERVO_MAX*VTOL_pitch_scale);
     SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, (motors->get_roll()+motors->get_roll_ff())*SERVO_MAX*VTOL_roll_scale);
-    if (plane.control_mode == &plane.mode_launch) {
-        if (plane.control_mode->is_launch_flare()){
-            SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, 2725);
-        }
-    }
 
     if (plane.arming.is_armed_and_safety_off()) {
         // scale surfaces for throttle
@@ -482,15 +477,38 @@ void Tailsitter::output(void)
     bool pitch_lim = _have_elevator && (fabsf(SRV_Channels::get_output_scaled(SRV_Channel::Aux_servo_function_t::k_elevator)) >= SERVO_MAX);
     bool yaw_lim = _have_aileron && (fabsf(SRV_Channels::get_output_scaled(SRV_Channel::Aux_servo_function_t::k_aileron)) >= SERVO_MAX);
 
+    if (plane.control_mode == &plane.mode_launch) {
+        if (plane.control_mode->is_launch_detected()){
+            SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, 0);  // neutral elevator during launch detection
+            motors->output_motor_mask(plane.control_mode->get_throttle_by_launch_phase(), motor_mask, 0);   // zeros gimbal and yaw torque while outputting throttle
+        }
+        if (plane.control_mode->is_launch_stabilized()){
+            SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, 0);  // no elevator action
+            motors->trim_gimbal();
+        }
+        if (plane.control_mode->is_launch_flare()){
+            SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, 1900);
+            motors->trim_gimbal();  // now we're allowing yaw torque with the motors
+        }
+        // full stabilization during wing deployment
+    }
+    
     // Mix elevons and V-tail, always giving full priority to pitch
-    float elevator_mix = SRV_Channels::get_output_scaled(SRV_Channel::k_elevator) * (100.0 - plane.g.mixing_offset) * 0.01 * plane.g.mixing_gain;
-    float aileron_mix = SRV_Channels::get_output_scaled(SRV_Channel::k_aileron) * (100.0 + plane.g.mixing_offset) * 0.01 * plane.g.mixing_gain;
+    float elevator_mix = SRV_Channels::get_output_scaled(SRV_Channel::k_elevator) * (100.0 - plane.g.mixing_offset) * 0.01 * plane.g.mixing_gain * 2;
+    float aileron_mix = SRV_Channels::get_output_scaled(SRV_Channel::k_aileron) * (100.0 + plane.g.mixing_offset) * 0.01 * plane.g.mixing_gain * 2;
     float rudder_mix = SRV_Channels::get_output_scaled(SRV_Channel::k_rudder) * (100.0 + plane.g.mixing_offset) * 0.01 * plane.g.mixing_gain;
 
-    const float headroom = SERVO_MAX - fabsf(elevator_mix);
+    if (use_elevons != 0) {
+        if (plane.control_mode != &plane.mode_launch) {
+            // reduce mixing in forward flight, this is mainly to reduce the chance of saturating surfaces but also gives more direct control
+            elevator_mix = SRV_Channels::get_output_scaled(SRV_Channel::k_elevator);
+            aileron_mix = 0; 
+        }
+    }
+    const float headroom = SERVO_MAX - fabsf(aileron_mix);
     if (is_positive(headroom)) {
-        if (fabsf(aileron_mix) > headroom) {
-            aileron_mix *= headroom / fabsf(aileron_mix);
+        if (fabsf(elevator_mix) > headroom) {
+            elevator_mix *= headroom / fabsf(elevator_mix);
             yaw_lim |= _have_elevon;
         }
         if (fabsf(rudder_mix) > headroom) {
@@ -498,16 +516,26 @@ void Tailsitter::output(void)
             roll_lim |= _have_v_tail;
         }
     } else {
-        aileron_mix = 0.0;
+        elevator_mix = 0.0;
         rudder_mix = 0.0;
         yaw_lim |= _have_elevon;
         pitch_lim |= _have_elevon || _have_v_tail;
         roll_lim |= _have_v_tail;
     }
+
     SRV_Channels::set_output_scaled(SRV_Channel::k_elevon_left, elevator_mix - aileron_mix);
     SRV_Channels::set_output_scaled(SRV_Channel::k_elevon_right, elevator_mix + aileron_mix);
     SRV_Channels::set_output_scaled(SRV_Channel::k_vtail_right, elevator_mix - rudder_mix);
     SRV_Channels::set_output_scaled(SRV_Channel::k_vtail_left, elevator_mix + rudder_mix);
+
+
+    if (plane.control_mode == &plane.mode_launch && plane.control_mode->launch_should_not_use_ailerons()){  // from when launch detected until wing unfolding done
+        SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, 0);  // trimmed ailerons
+    }
+    else if (plane.control_mode == &plane.mode_launch && !plane.control_mode->launch_should_not_use_ailerons()){  
+        const float launch_aileron_scaling = 0.5f;  
+        SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, launch_aileron_scaling*SRV_Channels::get_output_scaled(SRV_Channel::k_aileron));
+    }
 
     if (roll_lim) {
         motors->limit.roll = true;
@@ -519,6 +547,12 @@ void Tailsitter::output(void)
         motors->limit.yaw = true;
     }
 
+    uint32_t now = AP_HAL::millis();
+    if (use_rpm_for_yaw == 0) {
+        if (!plane.control_mode->is_vtol_mode() && (!quadplane.in_transition() && !quadplane.tailsitter.in_vtol_transition(now))) {
+            motors->disable_diff_rpm_torque();
+        }
+    }
 }
 
 

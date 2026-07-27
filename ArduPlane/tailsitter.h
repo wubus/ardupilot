@@ -110,6 +110,8 @@ public:
     AP_Float VTOL_pitch_scale;
     AP_Float VTOL_yaw_scale;
     AP_Float disk_loading_min_outflow;
+    AP_Int8 use_rpm_for_yaw;
+    AP_Int8 use_elevons;
 
     AP_MotorsTailsitter* tailsitter_motors;
 

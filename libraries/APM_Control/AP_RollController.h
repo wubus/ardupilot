@@ -14,7 +14,7 @@ public:
     CLASS_NO_COPY(AP_RollController);
 
     float get_rate_out(float desired_rate, float scaler);
-    float get_servo_out(int32_t angle_err, float scaler, bool disable_integrator, bool ground_mode);
+    float get_servo_out(int32_t angle_err, float scaler, bool disable_integrator, bool ground_mode, bool launch_mode = false);
 
     // setup a one loop FF scale multiplier. This replaces any previous scale applied
     // so should only be used when only one source of scaling is needed

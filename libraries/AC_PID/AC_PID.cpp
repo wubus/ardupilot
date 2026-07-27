@@ -116,6 +116,12 @@ const AP_Param::GroupInfo AC_PID::var_info[] = {
 
     AP_GROUPINFO_FLAGS_DEFAULT_POINTER("D_LM", 25, AC_PID, _kd_lm, default_kd),
 
+    AP_GROUPINFO_FLAGS_DEFAULT_POINTER("P_LW", 26, AC_PID, _kp_lw, default_kp),
+
+    AP_GROUPINFO_FLAGS_DEFAULT_POINTER("I_LW", 27, AC_PID, _ki_lw, default_ki),
+
+    AP_GROUPINFO_FLAGS_DEFAULT_POINTER("D_LW", 28, AC_PID, _kd_lw, default_kd),
+
     // AP_GROUPINFO_FLAGS_DEFAULT_POINTER("FFLM", 26, AC_PID, _kff_lm, default_kd),
 
     // AP_GROUPINFO_FLAGS_DEFAULT_POINTER("FFFW", 27, AC_PID, _kff_fw, default_kd),
@@ -134,7 +140,7 @@ const AP_Param::GroupInfo AC_PID::var_info[] = {
 // Constructor
 AC_PID::AC_PID(float initial_p, float initial_i, float initial_d, float initial_ff, float initial_imax, float initial_filt_T_hz, float initial_filt_E_hz, float initial_filt_D_hz,
                float initial_srmax, float initial_srtau, float initial_dff, float initial_p_fw, float initial_i_fw, float initial_d_fw, float initial_p_wf, float initial_i_wf, float initial_d_wf,
-               float initial_p_lm, float initial_i_lm, float initial_d_lm) : //, float initial_ff_lm, float initial_ff_fw, float initial_ff_wf) :
+               float initial_p_lm, float initial_i_lm, float initial_d_lm, float initial_p_lw, float initial_i_lw, float initial_d_lw) : //, float initial_ff_lm, float initial_ff_fw, float initial_ff_wf) :
     default_kp(initial_p),
     default_ki(initial_i),
     default_kd(initial_d),
@@ -153,7 +159,10 @@ AC_PID::AC_PID(float initial_p, float initial_i, float initial_d, float initial_
     default_kd_wf(initial_d),
     default_kp_lm(initial_p),
     default_ki_lm(initial_i),
-    default_kd_lm(initial_d)
+    default_kd_lm(initial_d),
+    default_kp_lw(initial_p),
+    default_ki_lw(initial_i),
+    default_kd_lw(initial_d)
     // default_kff_lm(initial_ff),
     // default_kff_fw(initial_ff),
     // default_kff_wf(initial_ff)
@@ -383,12 +392,12 @@ float AC_PID::update_p_gain(int32_t pat, bool wd, uint32_t tsld, bool lm) // pat
     check_iters++;
 
     if (!lm) {
-        t_ = (tsld-250.0f) / 1570.0f;
+        t_ = (tsld-125.0f) / 900.0f;
         kp_a = _kp;
         kp_b = _kp_wf;
     }
     else {
-        t_ = tsld/1400.0f;
+        t_ = tsld/950.0f;
         kp_a = _kp_fw;
         kp_b = _kp_lm;
     }
@@ -414,6 +423,9 @@ float AC_PID::update_p_gain(int32_t pat, bool wd, uint32_t tsld, bool lm) // pat
         else {
             return kp_h + (_kp_fw - kp_h) * (abs(pat) - 3700) / 3300;
         }
+    }
+    else if (wd && lm) {
+        return _kp_lw;
     }
     else {
         return kp_h;
@@ -539,6 +551,9 @@ float AC_PID::update_d_gain(int32_t pat, bool wd, uint32_t tsld, bool lm) // pat
         else {
             return kd_h + (_kd_fw - kd_h) * (abs(pat) - 3700) / 3300;
         }
+    }
+    else if (wd && lm) {
+        return _kd_lw;
     }
     else {
         return kd_h;

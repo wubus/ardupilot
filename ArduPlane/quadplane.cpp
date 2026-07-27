@@ -1027,19 +1027,22 @@ void QuadPlane::hold_stabilize(float throttle_in)
     multicopter_attitude_rate_update(get_desired_yaw_rate_cds(false));
 
     if (plane.control_mode == &plane.mode_launch) {
-        throttle_in = plane.control_mode->get_throttle_by_launch_phase();
-        // if (plane.control_mode->is_launch_flare()){
-        //     SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, 2725);
-        // }
-        // if (plane.control_mode->in_projectile_flight()) {
-        //     zero_pitch_control();                                        // UNCOMMENT LATER? 
-        // }
+        if (plane.control_mode->in_projectile_flight()) {
+            throttle_in = plane.control_mode->get_throttle_by_launch_phase();
+        }
+        if (plane.control_mode->is_launch_flare() || plane.control_mode->is_launch_stabilized() || plane.control_mode->is_launch_detected() || plane.control_mode->is_prelaunch()) {
+            zero_pitch_control();                                        // UNCOMMENT LATER? 
+        }
+        if (plane.control_mode->is_launch_detected()) {
+            relax_attitude_control();
+        }
     }
 
-    if ((throttle_in <= 0) && !air_mode_active()) {
+    if (((throttle_in <= 0) && !air_mode_active()) || (plane.control_mode == &plane.mode_launch && plane.control_mode->is_prelaunch())) {
         set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
         attitude_control->set_throttle_out(0, false, 0);
         relax_attitude_control();
+        zero_pitch_control();
     } else {
         set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
         //bool should_boost = true;
@@ -1389,10 +1392,10 @@ float QuadPlane::get_pilot_input_yaw_rate_cds(void) const
 float QuadPlane::get_desired_yaw_rate_cds(bool should_weathervane)
 {
     float yaw_cds = 0;
-    if (assisted_flight) {
-        // use bank angle to get desired yaw rate
-        yaw_cds += desired_auto_yaw_rate_cds();
-    }
+    // if (assisted_flight) {
+    //     // use bank angle to get desired yaw rate
+    //     yaw_cds += desired_auto_yaw_rate_cds();
+    // }
 
     // add in pilot input
     yaw_cds += get_pilot_input_yaw_rate_cds();
@@ -2020,7 +2023,8 @@ void QuadPlane::motors_output(bool run_rate_controller)
         motors->set_dt(last_loop_time_s);
         attitude_control->set_dt(last_loop_time_s);
         pos_control->set_dt(last_loop_time_s);
-        attitude_control->rate_controller_run(in_vtol_mode() ? plane.nav_pitch_cd : plane.nav_pitch_cd-9000, plane.wing_deploy, plane.millis_since_wing_deploy, plane.control_mode==&plane.mode_launch); //
+        bool gain_scheduling_mode_fw = (!in_vtol_mode() && !in_transition())|| tailsitter.in_vtol_transition(now);
+        attitude_control->rate_controller_run(!gain_scheduling_mode_fw ? plane.nav_pitch_cd : plane.nav_pitch_cd-9000, plane.wing_deploy, plane.millis_since_wing_deploy, plane.control_mode==&plane.mode_launch); //
         // if (plane.control_mode == &plane.mode_launch) { // not necessary if I'm not mistaken
         //     if (plane.control_mode->is_launch_flare()){
         //         SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, 2725);

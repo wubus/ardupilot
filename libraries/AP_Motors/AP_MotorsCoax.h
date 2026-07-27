@@ -39,6 +39,11 @@ public:
     // output_to_motors - sends minimum values out to the motors
     virtual void        output_to_motors() override;
 
+    void        trim_gimbal() override;
+
+    void       disable_diff_rpm_torque() override { _should_use_differential_rpm = false; };
+
+
     // get_motor_mask - returns a bitmask of which outputs are being used for motors or servos (1 means being used)
     //  this can be used to ensure other pwm outputs (i.e. for servos) do not conflict
     uint32_t            get_motor_mask() override;

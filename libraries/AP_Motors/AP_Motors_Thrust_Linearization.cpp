@@ -199,5 +199,6 @@ float Thrust_Linearization::get_compensation_gain() const
         ret *= 1.0 / constrain_float(air_density_ratio, 0.5, 1.25);
     }
 #endif
+    ret = 1.0;
     return ret;
 }

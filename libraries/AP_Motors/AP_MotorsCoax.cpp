@@ -132,7 +132,7 @@ void AP_MotorsCoax::output_armed_stabilizing()
     const float compensation_gain = thr_lin.get_compensation_gain();
     roll_thrust = (_roll_in + _roll_in_ff) * compensation_gain;
     pitch_thrust = (_pitch_in + _pitch_in_ff) * compensation_gain;
-    yaw_thrust = (_yaw_in + _yaw_in_ff) * compensation_gain;
+    yaw_thrust = (_yaw_in + _yaw_in_ff) * compensation_gain * _should_use_differential_rpm;
     throttle_thrust = get_throttle() * compensation_gain;
     throttle_avg_max = _throttle_avg_max * compensation_gain;
 
@@ -252,5 +252,11 @@ void AP_MotorsCoax::_output_test_seq(uint8_t motor_seq, int16_t pwm)
         default:
             // do nothing
             break;
+    }
+}
+
+void AP_MotorsCoax::trim_gimbal() {
+    for (uint8_t i = 0; i < NUM_ACTUATORS; i++) {
+        rc_write_angle(AP_MOTORS_MOT_1 + i, 0);
     }
 }

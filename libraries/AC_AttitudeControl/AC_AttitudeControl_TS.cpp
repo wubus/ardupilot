@@ -94,7 +94,7 @@ void AC_AttitudeControl_TS::input_euler_rate_yaw_euler_angle_pitch_bf_roll(bool 
     }
     _euler_angle_target.z = wrap_PI(_euler_angle_target.z + yaw_rate * _dt);  
 
-    if (in_projectile_flight) {
+    if (in_projectile_flight) {  // WRONG> WRONG FOR WING DEPLOYMENT PART
 
         Vector3f current_eulers;
         attitude_body.to_euler(current_eulers.x, current_eulers.y, current_eulers.z);

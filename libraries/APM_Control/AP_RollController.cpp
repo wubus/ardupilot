@@ -141,6 +141,8 @@ const AP_Param::GroupInfo AP_RollController::var_info[] = {
 
     AP_SUBGROUPINFO(rate_pid, "_RATE_", 9, AP_RollController, AC_PID),
 
+    AP_GROUPINFO("2SRV_TC_LM", 10, AP_RollController, gains.tau_lm,    0.3f),
+
     AP_GROUPEND
 };
 
@@ -252,7 +254,7 @@ float AP_RollController::get_rate_out(float desired_rate, float scaler)
  3) boolean which is true when stabilise mode is active
  4) minimum FBW airspeed (metres/sec)
 */
-float AP_RollController::get_servo_out(int32_t angle_err, float scaler, bool disable_integrator, bool ground_mode)
+float AP_RollController::get_servo_out(int32_t angle_err, float scaler, bool disable_integrator, bool ground_mode, bool launch_mode)
 {
     if (gains.tau < 0.05f) {
         gains.tau.set(0.05f);
@@ -261,6 +263,9 @@ float AP_RollController::get_servo_out(int32_t angle_err, float scaler, bool dis
     // Calculate the desired roll rate (deg/sec) from the angle error
     angle_err_deg = angle_err * 0.01;
     float desired_rate = angle_err_deg/ gains.tau;
+    if (launch_mode) {
+        desired_rate = angle_err_deg / gains.tau_lm;
+    }
 
     // Limit the demanded roll rate
     if (gains.rmax_pos && desired_rate < -gains.rmax_pos) {
